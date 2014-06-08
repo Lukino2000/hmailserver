@@ -185,7 +185,7 @@ namespace hMailServer.Administrator
            // 
            // panelTopBar
            // 
-           this.panelTopBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+           this.panelTopBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(96)))), ((int)(((byte)(173)))));
            this.panelTopBar.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
            this.panelTopBar.Controls.Add(this.labelTopCaption);
            this.panelTopBar.Dock = System.Windows.Forms.DockStyle.Top;
@@ -198,7 +198,7 @@ namespace hMailServer.Administrator
            // 
            this.labelTopCaption.AutoSize = true;
            this.labelTopCaption.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-           this.labelTopCaption.ForeColor = System.Drawing.Color.Black;
+           this.labelTopCaption.ForeColor = System.Drawing.Color.White;
            this.labelTopCaption.Location = new System.Drawing.Point(3, 5);
            this.labelTopCaption.Name = "labelTopCaption";
            this.labelTopCaption.Size = new System.Drawing.Size(46, 16);
@@ -235,33 +235,33 @@ namespace hMailServer.Administrator
             this.toolStripSeparator1,
             this.menuItemExit});
            this.menuItemFile.Name = "menuItemFile";
-           this.menuItemFile.Size = new System.Drawing.Size(35, 20);
+           this.menuItemFile.Size = new System.Drawing.Size(37, 20);
            this.menuItemFile.Text = "&File";
            // 
            // menuItemSelectLanguage
            // 
            this.menuItemSelectLanguage.Name = "menuItemSelectLanguage";
-           this.menuItemSelectLanguage.Size = new System.Drawing.Size(162, 22);
+           this.menuItemSelectLanguage.Size = new System.Drawing.Size(166, 22);
            this.menuItemSelectLanguage.Text = "Select language...";
            this.menuItemSelectLanguage.Click += new System.EventHandler(this.menuItemSelectLanguage_Click);
            // 
            // menuItemConnect
            // 
            this.menuItemConnect.Name = "menuItemConnect";
-           this.menuItemConnect.Size = new System.Drawing.Size(162, 22);
+           this.menuItemConnect.Size = new System.Drawing.Size(166, 22);
            this.menuItemConnect.Text = "Connect...";
            this.menuItemConnect.Click += new System.EventHandler(this.menuItemConnect_Click);
            // 
            // toolStripSeparator1
            // 
            this.toolStripSeparator1.Name = "toolStripSeparator1";
-           this.toolStripSeparator1.Size = new System.Drawing.Size(159, 6);
+           this.toolStripSeparator1.Size = new System.Drawing.Size(163, 6);
            // 
            // menuItemExit
            // 
            this.menuItemExit.Name = "menuItemExit";
            this.menuItemExit.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
-           this.menuItemExit.Size = new System.Drawing.Size(162, 22);
+           this.menuItemExit.Size = new System.Drawing.Size(166, 22);
            this.menuItemExit.Text = "Exit";
            this.menuItemExit.Click += new System.EventHandler(this.menuItemExit_Click);
            // 
@@ -271,20 +271,20 @@ namespace hMailServer.Administrator
             this.menuItemHelpIndex,
             this.menuItemHelpAbout});
            this.menuItemHelp.Name = "menuItemHelp";
-           this.menuItemHelp.Size = new System.Drawing.Size(40, 20);
+           this.menuItemHelp.Size = new System.Drawing.Size(44, 20);
            this.menuItemHelp.Text = "Help";
            // 
            // menuItemHelpIndex
            // 
            this.menuItemHelpIndex.Name = "menuItemHelpIndex";
-           this.menuItemHelpIndex.Size = new System.Drawing.Size(115, 22);
+           this.menuItemHelpIndex.Size = new System.Drawing.Size(116, 22);
            this.menuItemHelpIndex.Text = "Index...";
            this.menuItemHelpIndex.Click += new System.EventHandler(this.menuItemHelpIndex_Click);
            // 
            // menuItemHelpAbout
            // 
            this.menuItemHelpAbout.Name = "menuItemHelpAbout";
-           this.menuItemHelpAbout.Size = new System.Drawing.Size(115, 22);
+           this.menuItemHelpAbout.Size = new System.Drawing.Size(116, 22);
            this.menuItemHelpAbout.Text = "About...";
            this.menuItemHelpAbout.Click += new System.EventHandler(this.menuItemHelpAbout_Click);
            // 
