@@ -11,17 +11,15 @@ namespace ConfigureInstallation
 
       static int Main(string []args)
       {
-         if (args.Count() != 5)
+         if (args.Count() != 3)
          {
-            Console.WriteLine("Expected two parameters: RootDir, Version, Build, ProductName, OutputName");
+            Console.WriteLine("Expected two parameters: RootDir, Version, Build");
             return -1;
          }
 
          var rootDir = args[0];
          var version = args[1];
          var build = args[2];
-         var productName = args[3];
-         var outputName = args[4];
 
          if (!Directory.Exists(rootDir))
          {
@@ -56,11 +54,10 @@ namespace ConfigureInstallation
          }
          Console.WriteLine("Writing install version and output name to {0}", installationFile);
 
-         Ini.Write(installationFile, "Setup", "AppName", string.Format("{0} {1}-B{2}", productName, version, build));
-         Ini.Write(installationFile, "Setup", "AppVerName", string.Format("{0} {1}-B{2}", productName, version, build));
+         Ini.Write(installationFile, "Setup", "AppVerName", string.Format("hMailServer {0}-B{1}", version, build));
 
          // Write installation output verison
-         Ini.Write(installationFile, "Setup", "OutputBaseFilename", string.Format("{0}-{1}-B{2}", outputName, version, build));
+         Ini.Write(installationFile, "Setup", "OutputBaseFilename", string.Format("hMailServer-{0}-B{1}", version, build));
 
          Console.WriteLine("All done. Exiting");
 
