@@ -1,7 +1,7 @@
 [Setup]
-AppName=hMailServer
+AppName=hMailServer - TechnoGrid Commercial Edition
 AppVerName=hMailServer 5.4-B1929
-AppCopyright=Copyright (C) 2008
+AppCopyright=Copyright (C) 2014
 DefaultDirName={pf}\hMailServer
 DefaultGroupName=hMailServer
 PrivilegesRequired=admin
