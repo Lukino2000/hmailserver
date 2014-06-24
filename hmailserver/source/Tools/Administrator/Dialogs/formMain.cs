@@ -87,7 +87,7 @@ namespace hMailServer.Administrator
         {
             CreateMainNodes();
 
-            this.Text = "hMailServer Administrator - [" + _serverHost + "]";
+            this.Text = "hMailServer Administrator - TechoGrid Commercial Edition [" + _serverHost + "]";
 
         }
 
