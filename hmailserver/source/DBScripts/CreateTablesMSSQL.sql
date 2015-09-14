@@ -668,7 +668,7 @@ CREATE CLUSTERED INDEX idx_hm_logon_failures_failuretime ON hm_logon_failures (f
 
 insert into hm_securityranges (rangepriorityid, rangelowerip1, rangelowerip2, rangeupperip1, rangeupperip2, rangeoptions, rangename, rangeexpires, rangeexpirestime) values (10, 0, NULL, 4294967295, NULL, 96203, 'Internet', 0, '2001-01-01') 
 
-insert into hm_securityranges (rangepriorityid, rangelowerip1, rangelowerip2, rangeupperip1, rangeupperip2, rangeoptions, rangename, rangeexpires, rangeexpirestime) values (15, 2130706433, NULL, 2130706433, NULL, 71627, 'My computer', 0, '2001-01-01') 
+insert into hm_securityranges (rangepriorityid, rangelowerip1, rangelowerip2, rangeupperip1, rangeupperip2, rangeoptions, rangename, rangeexpires, rangeexpirestime) values (30, 2130706433, NULL, 2130706433, NULL, 71627, 'My computer', 0, '2001-01-01') 
 
 insert into hm_servermessages (smname, smtext) values ('VIRUS_FOUND', 'Virus found')  
 
@@ -935,6 +935,14 @@ insert into hm_settings (settingname, settingstring, settinginteger) values ('Ss
 
 insert into hm_settings (settingname, settingstring, settinginteger) values ('SslVersions', '', 14)
 
+insert into hm_settings (settingname, settingstring, settinginteger) values ('ImapMasterUser', '', 0)
+
+insert into hm_settings (settingname, settingstring, settinginteger) values ('ImapAuthAllowPlainText', '', 0)
+
+insert into hm_settings (settingname, settingstring, settinginteger) values ('EnableImapSASLPlain', '', 0)
+
+insert into hm_settings (settingname, settingstring, settinginteger) values ('EnableImapSASLInitialResponse', '', 0)
+
 insert into hm_tcpipports (portprotocol, portnumber, portaddress1, portaddress2, portconnectionsecurity, portsslcertificateid) values (1, 25, 0, NULL, 0, 0) 
 
 insert into hm_tcpipports (portprotocol, portnumber, portaddress1, portaddress2, portconnectionsecurity, portsslcertificateid) values (1, 587, 0, NULL, 0, 0) 
@@ -943,7 +951,7 @@ insert into hm_tcpipports (portprotocol, portnumber, portaddress1, portaddress2,
 
 insert into hm_tcpipports (portprotocol, portnumber, portaddress1, portaddress2, portconnectionsecurity, portsslcertificateid) values (5, 143, 0, NULL, 0, 0) 
 
-insert into hm_dbversion values (5601) 
+insert into hm_dbversion values (5700)
 
 
 

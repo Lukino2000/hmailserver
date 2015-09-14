@@ -21,6 +21,7 @@
 #include "../SMTP/SMTPConfiguration.h"
 
 #include "IMAPSimpleCommandParser.h"
+#include "MessagesContainer.h"
 
 #ifdef _DEBUG
 #define DEBUG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -30,13 +31,21 @@
 namespace HM
 {
 
-   IMAPCommandAppend::IMAPCommandAppend()
+   IMAPCommandAppend::IMAPCommandAppend() :
+      bytes_left_to_receive_(0)
    {
    }
 
    IMAPCommandAppend::~IMAPCommandAppend()
    {
-      KillCurrentMessage_();
+      try
+      {
+         KillCurrentMessage_();
+      }
+      catch (...)
+      {
+
+      }
    }
 
    void 
@@ -92,7 +101,7 @@ namespace HM
       bytes_left_to_receive_ += 2;
 
       std::shared_ptr<const Domain> domain = CacheContainer::Instance()->GetDomain(pConnection->GetAccount()->GetDomainID());
-      int maxMessageSizeKB = GetMaxMessageSize_(domain);
+      size_t maxMessageSizeKB = GetMaxMessageSize_(domain);
 
       if (maxMessageSizeKB > 0 && 
           bytes_left_to_receive_ / 1024 > maxMessageSizeKB)
@@ -108,7 +117,7 @@ namespace HM
       // Can't use pParser->QuotedWord() since there may
       // be many quoted words in the command.
       
-      for (int i = 2; i < pParser->WordCount(); i++)
+      for (size_t i = 2; i < pParser->WordCount(); i++)
       {
          std::shared_ptr<IMAPSimpleWord> pWord = pParser->Word(i);
 
@@ -193,7 +202,7 @@ namespace HM
    }
    
    bool
-   IMAPCommandAppend::WriteData_(const std::shared_ptr<IMAPConnection>  pConn, const BYTE *pBuf, int WriteLen)
+   IMAPCommandAppend::WriteData_(const std::shared_ptr<IMAPConnection>  pConn, const BYTE *pBuf, size_t WriteLen)
    {
       if (!current_message_)
          return false;
@@ -203,11 +212,18 @@ namespace HM
          FileUtilities::CreateDirectory(destinationPath);
 
       File oFile;
-      if (!oFile.Open(message_file_name_, File::OTAppend))
+      
+      try
+      {
+         oFile.Open(message_file_name_, File::OTAppend);
+
+
+         oFile.Write(pBuf, WriteLen);
+      }
+      catch (...)
+      {
          return false;
-   
-      DWORD dwNoOfBytesWritten = 0;
-      oFile.Write(pBuf, WriteLen, dwNoOfBytesWritten);
+      }
 
       return true;
    }
@@ -258,8 +274,7 @@ namespace HM
       current_message_->SetFlagDraft(bDraft);
       current_message_->SetFlagAnswered(bAnswered);
       current_message_->SetFlagFlagged(bFlagged);
-
-      current_message_->SetFlagRecent(true);
+    
          
       // Set the create time
       if (!create_time_to_set_.IsEmpty())
@@ -270,7 +285,12 @@ namespace HM
       }
 
       PersistentMessage::SaveObject(current_message_);
-      destination_folder_->SetFolderNeedsRefresh();
+
+      pConnection->GetRecentMessages().insert(current_message_->GetID());
+
+      MessagesContainer::Instance()->SetFolderNeedsRefresh(destination_folder_->GetID());
+
+
 
       String sResponse;
       if (pConnection->GetCurrentFolder() &&
@@ -278,7 +298,7 @@ namespace HM
       {
          std::shared_ptr<Messages> messages = destination_folder_->GetMessages();
          sResponse += IMAPNotificationClient::GenerateExistsString(messages->GetCount());
-         sResponse += IMAPNotificationClient::GenerateRecentString(messages->GetNoOfRecent());
+         sResponse += IMAPNotificationClient::GenerateRecentString((int) pConnection->GetRecentMessages().size());
       }
 
       // Send the OK response to the client.

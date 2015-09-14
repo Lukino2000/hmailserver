@@ -22,7 +22,14 @@ namespace HM
 
    ADORecordset::~ADORecordset()
    {
-      Close_();
+      try
+      {
+         Close_();
+      }
+      catch (...)
+      {
+
+      }
    }
 
    DALConnection::ExecutionResult
@@ -108,7 +115,7 @@ namespace HM
    {
       try
       {
-         return cADORecordset->GetRecordCount();
+         return (long) cADORecordset->GetRecordCount();
       }
       catch ( _com_error &err)
       {

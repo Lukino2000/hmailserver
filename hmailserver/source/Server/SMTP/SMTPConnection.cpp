@@ -111,10 +111,17 @@ namespace HM
 
    SMTPConnection::~SMTPConnection()
    {
-      ResetCurrentMessage_();
+      try
+      {
+         ResetCurrentMessage_();
 
-      if (GetConnectionState() != StatePendingConnect)
-         SessionManager::Instance()->OnSessionEnded(STSMTP);
+         if (GetConnectionState() != StatePendingConnect)
+            SessionManager::Instance()->OnSessionEnded(STSMTP);
+      }
+      catch (...)
+      {
+
+      }
    }
 
 
@@ -292,8 +299,8 @@ namespace HM
 
       if (sRequest.GetLength() > 510)
       {
-         // This line is to long... is this an evil user?
-         EnqueueWrite_("500 Line to long.");
+         // This line is too long... is this an evil user?
+         EnqueueWrite_("500 Line too long.");
          return;
       }
 
@@ -467,14 +474,19 @@ namespace HM
 
       // Parse the extensions 
       String sAuthParam;
-      int iEstimatedMessageSize = 0;
+      size_t iEstimatedMessageSize = 0;
       while (iterParam != vecParams.end())
       {
-         String sParam = (*iterParam);
-         if (sParam.Left(4).CompareNoCase(_T("SIZE")) == 0)
-            iEstimatedMessageSize = _ttoi(sParam.Mid(5));
-         if (sParam.Left(5).CompareNoCase(_T("AUTH")) == 0)
-            sAuthParam = sParam.Mid(5);
+         String parameter = (*iterParam);
+         if (parameter.Left(4).CompareNoCase(_T("SIZE")) == 0)
+            iEstimatedMessageSize = _ttoi(parameter.Mid(5));
+         else if (parameter.Left(5).CompareNoCase(_T("AUTH")) == 0)
+            sAuthParam = parameter.Mid(5);
+         else
+         {
+            ReportUnsupportedEsmtpExtension_(parameter);
+            return;
+         }
 
          iterParam++;
       }
@@ -511,7 +523,7 @@ namespace HM
       if (max_message_size_kb_ > 0 && 
           iEstimatedMessageSize / 1024 > max_message_size_kb_)
       {
-         // Message to big. Reject it.
+         // Message too big. Reject it.
          String sMessage;
          sMessage.Format(_T("552 Message size exceeds fixed maximum message size. Size: %d KB, Max size: %d KB"), 
                iEstimatedMessageSize / 1024, max_message_size_kb_);
@@ -599,7 +611,33 @@ namespace HM
          return;
       }
 
+      // Parse the contents of the RCPT TO: command
+      String sRcptToParameters = Request.Mid(8).Trim();
+
       String sRecipientAddress;
+
+      std::vector<String> vecParams = StringParser::SplitString(sRcptToParameters, " ");
+      auto iterParam = vecParams.begin();
+
+      if (iterParam != vecParams.end())
+      {
+         if (!TryExtractAddress_((*iterParam), sRecipientAddress))
+         {
+            SendErrorResponse_(550, "Invalid syntax. Syntax should be MAIL FROM:<userdomain>[crlf]");
+            return;
+         }
+
+         iterParam++;
+      }
+
+      // Parse the extensions 
+      if (iterParam != vecParams.end())
+      {
+         String parameter = *iterParam;
+         ReportUnsupportedEsmtpExtension_(parameter);
+         return;
+      }
+
 
       if (!TryExtractAddress_(Request.Mid(8), sRecipientAddress))
       {
@@ -862,7 +900,7 @@ namespace HM
       transmission_buffer_->Append(pBuf->GetBuffer(), pBuf->GetSize());
 
       // We need current message size in KB
-      int iBufSizeKB = transmission_buffer_->GetSize() / 1024;
+      size_t iBufSizeKB = transmission_buffer_->GetSize() / 1024;
 
       // Clear the old buffer
       pBuf->Empty();
@@ -882,7 +920,7 @@ namespace HM
       {
 
          String sLogData;
-         int iMaxSizeDrop = IniFileSettings::Instance()->GetSMTPDMaxSizeDrop();
+         size_t iMaxSizeDrop = IniFileSettings::Instance()->GetSMTPDMaxSizeDrop();
          if (iMaxSizeDrop > 0 && iBufSizeKB >= iMaxSizeDrop) 
          {
             sLogData.Format(_T("Size: %d KB, Max size: %d KB - DROP!!"), 
@@ -892,20 +930,21 @@ namespace HM
             sMessage.Format(_T("552 Message size exceeds the drop maximum message size. Size: %d KB, Max size: %d KB - DROP!"), 
                 iBufSizeKB, iMaxSizeDrop);
             EnqueueWrite_(sMessage);
-         LogAwstatsMessageRejected_();
-         ResetCurrentMessage_();
-         SetReceiveBinary(false);
-         pending_disconnect_ = true;
-         EnqueueDisconnect();
-         return;
+            LogAwstatsMessageRejected_();
+            ResetCurrentMessage_();
+            SetReceiveBinary(false);
+            pending_disconnect_ = true;
+            EnqueueDisconnect();
+            return;
 
-      } else 
-      {
-         // We need more data.
-         EnqueueRead("");
-         return;
+         } 
+         else 
+         {
+            // We need more data.
+            EnqueueRead("");
+            return;
+         }
       }
-   }
 
       // Since this may be a time-consuming task, do it asynchronously
       std::shared_ptr<AsynchronousTask<TCPConnection> > finalizationTask = 
@@ -1132,13 +1171,12 @@ namespace HM
       int iTotalSpamScore = SpamProtection::CalculateTotalSpamScore(spam_test_results_);
       int iSpamMarkThreshold = Configuration::Instance()->GetAntiSpamConfiguration().GetSpamMarkThreshold();
 
-      if (iTotalSpamScore >= iSpamMarkThreshold)
-      {
-         pMsgData = SpamProtection::TagMessageAsSpam(current_message_, spam_test_results_);
+      bool classifiedAsSpam = iTotalSpamScore >= iSpamMarkThreshold;
 
-         // Increase the spam-counter
+      pMsgData = SpamProtection::AddSpamScoreHeaders(current_message_, spam_test_results_, classifiedAsSpam);
+
+      if (classifiedAsSpam)
          ServerStatus::Instance()->OnSpamMessageDetected();
-      }
 
       SetMessageSignature_(pMsgData);
 
@@ -1280,51 +1318,70 @@ namespace HM
       const String fileName = PersistentMessage::GetFileName(current_message_);
 
       File oFile;
-      if (!oFile.Open(fileName, File::OTReadOnly))
-         return false;
+
+
+      std::shared_ptr<ByteBuffer> pBuffer;
 
       const int iChunkSize = 10000;
-         std::shared_ptr<ByteBuffer> pBuffer = oFile.ReadChunk(iChunkSize);
-      while (pBuffer)
+
+      try
+      {
+         oFile.Open(fileName, File::OTReadOnly);
+
+         pBuffer = oFile.ReadChunk(iChunkSize);
+      }
+      catch (...)
+      {
+         return false;
+      }
+
+      while (pBuffer->GetSize() > 0)
       {
          // Check that buffer contains correct line endings.
          const char *pChar = pBuffer->GetCharBuffer();
-         int iBufferSize = pBuffer->GetSize();
+         size_t iBufferSize = pBuffer->GetSize();
 
-         // Check from pos 3 to size-3. Not 100% sure, but
-         // we don't have to worry about buffer start/endings.
-
-         for (int i = 3; i < iBufferSize - 3; i++)
+         if (iBufferSize >= 3)
          {
-            const char *pCurrentChar = pChar + i;
-
-            // Check chars.
-            if (*pCurrentChar == '\r')
+            for (size_t i = 3; i < iBufferSize - 3; i++)
             {
-               // Check next character
-               if (i >= iBufferSize)
-                  return false;
+               const char *pCurrentChar = pChar + i;
 
-               const char *pNextChar = pCurrentChar + 1;
-               if (*pNextChar != '\n')
-                  return false;
-            }
-            else if (*pCurrentChar == '\n')
-            {
-               // Check previous char
-               if (i == 0)
-                  return false;
+               // Check chars.
+               if (*pCurrentChar == '\r')
+               {
+                  // Check next character
+                  if (i >= iBufferSize)
+                     return false;
 
-               const char *pPreviousChar = pCurrentChar - 1;
-               if (*pPreviousChar != '\r')
-                  return false;
+                  const char *pNextChar = pCurrentChar + 1;
+                  if (*pNextChar != '\n')
+                     return false;
+               }
+               else if (*pCurrentChar == '\n')
+               {
+                  // Check previous char
+                  if (i == 0)
+                     return false;
+
+                  const char *pPreviousChar = pCurrentChar - 1;
+                  if (*pPreviousChar != '\r')
+                     return false;
+               }
             }
          }
 
          // Read next chunk
-         pBuffer = oFile.ReadChunk(iChunkSize);
+         try
+         {
+            pBuffer = oFile.ReadChunk(iChunkSize);
+         }
+         catch (...)
+         {
+            return false;
+         }
       }
-
+      
       return true;
    }
 
@@ -1407,16 +1464,16 @@ namespace HM
    {
       String sComputerName = Utilities::ComputerName(); 
 
-      String sData = "250-" + sComputerName + "\r\n";
+      String sData = "250-" + sComputerName;
       
       // Append size keyword
       {
          String sSizeKeyword;
          int iMaxSize = smtpconf_->GetMaxMessageSize() * 1000;
          if (iMaxSize > 0)
-            sSizeKeyword.Format(_T("250-SIZE %d\r\n"), iMaxSize);
+            sSizeKeyword.Format(_T("\r\n250-SIZE %d"), iMaxSize);
          else
-            sSizeKeyword.Format(_T("250-SIZE\r\n"));
+            sSizeKeyword.Format(_T("\r\n250-SIZE"));
          sData += sSizeKeyword;
       }
 
@@ -1425,17 +1482,22 @@ namespace HM
          if (GetConnectionSecurity() == CSSTARTTLSOptional ||
              GetConnectionSecurity() == CSSTARTTLSRequired)
          {
-            sData += "250-STARTTLS\r\n";
+            sData += "\r\n250-STARTTLS";
          }
       }
 
-      String sAuth = "250 AUTH LOGIN";
+      if (GetAuthIsEnabled_())
+      {
+         String sAuth = "\r\n250-AUTH LOGIN";
 
-      if (smtpconf_->GetAuthAllowPlainText())
-         sAuth += " PLAIN";
+         if (smtpconf_->GetAuthAllowPlainText())
+            sAuth += " PLAIN";
 
-      sData += sAuth;
-	   
+         sData += sAuth;
+      }
+
+      sData += "\r\n250 HELP";
+
       EnqueueWrite_(sData);
    
       return true;
@@ -1640,6 +1702,12 @@ namespace HM
    void 
    SMTPConnection::ProtocolAUTH_(const String &sRequest)
    {
+      if (!GetAuthIsEnabled_())
+      {
+         SendErrorResponse_(504, "Authentication not enabled.");
+         return;
+      }
+
       if (!CheckStartTlsRequired_())
          return;
 
@@ -2073,5 +2141,19 @@ namespace HM
       }
 
       return true;
+   }
+
+   bool
+   SMTPConnection::GetAuthIsEnabled_()
+   {
+      const auto authDisabledOnPorts = IniFileSettings::Instance()->GetAuthDisabledOnPorts();
+      return authDisabledOnPorts.find(GetLocalEndpointPort()) == authDisabledOnPorts.end();
+   }
+
+   void 
+   SMTPConnection::ReportUnsupportedEsmtpExtension_(const String& parameter)
+   {
+      SendErrorResponse_(550, Formatter::Format("Unsupported ESMTP extension: {0}", parameter));
+
    }
 }

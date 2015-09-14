@@ -39,9 +39,12 @@
 
 #include "../Common/BO/Groups.h"
 
-#ifdef _DEBUG
-long InterfaceSettings::counter = 0;
-#endif
+InterfaceSettings::InterfaceSettings() :
+   config_(nullptr),
+   ini_file_settings_(nullptr)
+{
+
+}
 
 STDMETHODIMP InterfaceSettings::InterfaceSupportsErrorInfo(REFIID riid)
 {
@@ -2445,6 +2448,140 @@ STDMETHODIMP InterfaceSettings::get_TlsVersion12Enabled(VARIANT_BOOL *pVal)
          return GetAccessDenied();
 
       *pVal = config_->GetSslVersionEnabled(HM::TlsVersion12) ? VARIANT_TRUE : VARIANT_FALSE;
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP InterfaceSettings::get_IMAPMasterUser(BSTR *pVal)
+{
+   try
+   {
+      if (!config_)
+         return GetAccessDenied();
+
+
+      *pVal = config_->GetIMAPConfiguration()->GetIMAPMasterUser().AllocSysString();
+
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP InterfaceSettings::put_IMAPMasterUser(BSTR newVal)
+{
+   try
+   {
+      if (!config_)
+         return GetAccessDenied();
+
+      HM::String sNewVal = newVal;
+      config_->GetIMAPConfiguration()->SetIMAPMasterUser(sNewVal);
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP InterfaceSettings::put_IMAPAuthAllowPlainText(VARIANT_BOOL newVal)
+{
+   try
+   {
+      if (!config_)
+         return GetAccessDenied();
+
+      config_->GetIMAPConfiguration()->SetIMAPAuthAllowPlainText(newVal == VARIANT_TRUE);
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+
+STDMETHODIMP InterfaceSettings::get_IMAPAuthAllowPlainText(VARIANT_BOOL *pVal)
+{
+   try
+   {
+      if (!config_)
+         return GetAccessDenied();
+
+      *pVal = config_->GetIMAPConfiguration()->GetIMAPAuthAllowPlainText() ? VARIANT_TRUE : VARIANT_FALSE;
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP InterfaceSettings::put_IMAPSASLPlainEnabled(VARIANT_BOOL newVal)
+{
+   try
+   {
+      if (!config_)
+         return GetAccessDenied();
+
+      config_->GetIMAPConfiguration()->SetUseIMAPSASLPlain(newVal == VARIANT_TRUE);
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+
+STDMETHODIMP InterfaceSettings::get_IMAPSASLPlainEnabled(VARIANT_BOOL *pVal)
+{
+   try
+   {
+      if (!config_)
+         return GetAccessDenied();
+
+      *pVal = config_->GetIMAPConfiguration()->GetUseIMAPSASLPlain() ? VARIANT_TRUE : VARIANT_FALSE;
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP InterfaceSettings::put_IMAPSASLInitialResponseEnabled(VARIANT_BOOL newVal)
+{
+   try
+   {
+      if (!config_)
+         return GetAccessDenied();
+
+      config_->GetIMAPConfiguration()->SetUseIMAPSASLInitialResponse(newVal == VARIANT_TRUE);
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+
+STDMETHODIMP InterfaceSettings::get_IMAPSASLInitialResponseEnabled(VARIANT_BOOL *pVal)
+{
+   try
+   {
+      if (!config_)
+         return GetAccessDenied();
+
+      *pVal = config_->GetIMAPConfiguration()->GetUseIMAPSASLInitialResponse() ? VARIANT_TRUE : VARIANT_FALSE;
       return S_OK;
    }
    catch (...)

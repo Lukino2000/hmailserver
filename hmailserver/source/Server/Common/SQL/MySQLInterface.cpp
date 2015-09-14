@@ -35,9 +35,16 @@ namespace HM
 
    MySQLInterface::~MySQLInterface()
    {
-      if (library_instance_)
+      try
       {
-         FreeLibrary(library_instance_);
+         if (library_instance_)
+         {
+            FreeLibrary(library_instance_);
+         }
+      }
+      catch (...)
+      {
+
       }
    }
 
@@ -52,7 +59,7 @@ namespace HM
 
       String sPath(szPath);
 
-      int iLastSlash = max(sPath.ReverseFind(_T("\\")), sPath.ReverseFind(_T("/")));
+      int iLastSlash = std::max(sPath.ReverseFind(_T("\\")), sPath.ReverseFind(_T("/")));
       String sRetVal = sPath.Mid(0, iLastSlash);
       sRetVal += "\\libmysql.dll";
 

@@ -42,7 +42,7 @@ namespace HM
 
    WorkQueue::~WorkQueue(void)
    {
-     LOG_DEBUG(Formatter::Format("Destructing work queue {0}", queue_name_));
+
    }
 
    void 
@@ -85,7 +85,7 @@ namespace HM
    {
       LOG_DEBUG(Formatter::Format("Starting work queue {0}", queue_name_));
 
-      //io_service_.reset();
+      io_service_.reset();
 
       for ( std::size_t i = 0; i < max_simultaneous_; ++i )
       {
@@ -102,7 +102,25 @@ namespace HM
    WorkQueue::IoServiceRunWorker()
    {
       LOG_DEBUG(Formatter::Format("Running worker in work queue {0}", queue_name_));
-      io_service_.run();
+
+      try
+      {
+         io_service_.run();
+      }
+      catch (boost::system::system_error& error)
+      {
+         if (error.code().value() == ERROR_ABANDONED_WAIT_0)
+         {
+            // If a call to GetQueuedCompletionStatus fails because the completion port handle associated with it is
+            // closed while the call is outstanding, the function returns FALSE, *lpOverlapped will be NULL, 
+            //and GetLastError will return ERROR_ABANDONED_WAIT_0.
+
+            return;
+         }
+
+         throw;
+      }
+
       LOG_DEBUG(Formatter::Format("Worker exited in work queue {0}", queue_name_));
    }
 
@@ -150,7 +168,6 @@ namespace HM
             return;
          }
 
-         
 
          boost::lock_guard<boost::recursive_mutex> guard(runningTasksMutex_);
          auto iter = runningTasks_.begin();

@@ -13,27 +13,7 @@
 
 namespace HM
 {
-   Logger* Logger::pInstanceApp = NULL;
-
-   void
-   Logger::CreateInstance()
-   {
-      pInstanceApp = new Logger();
-   }
-
-   void
-   Logger::DeleteInstance()
-   {
-      delete pInstanceApp;
-      pInstanceApp = 0;
-   }
-
-   Logger* 
-   Logger::Instance()
-   {
-      return pInstanceApp;
-   }
-
+   
    Logger::Logger()
    {
       log_mask_ = 0;
@@ -342,7 +322,18 @@ namespace HM
          break;
       }
 
-      bool fileExists = FileUtilities::Exists(fileName);
+      bool fileExists = false;
+
+      try
+      {
+         bool fileExists = FileUtilities::Exists(fileName);
+      }
+      catch (boost::system::system_error&)
+      {
+         // If the log is not accessible for some reason, such as error code 5 - access is denied, 
+         // then we can't open the log file. This will result in nothing being logged.
+         return nullptr;
+      }
 
       if (file->IsOpen())
       {
@@ -354,7 +345,8 @@ namespace HM
       
       if (!file->IsOpen())
       {
-         file->Open(fileName, File::OTAppend);
+         if (!file->Open(fileName, File::OTAppend))
+            return nullptr;
 
          if (!fileExists && writeUnicode)
          {
@@ -365,12 +357,14 @@ namespace HM
       return file;
    }
 
-   bool
+   void
    Logger::WriteData_(const String &sData, LogType lt)
    {
       boost::lock_guard<boost::recursive_mutex> guard(mtx_);
 
       File *file = GetCurrentLogFile_(lt);
+      if (file == nullptr)
+         return;
 
       bool writeUnicode = false;
       bool keepFileOpen = (log_mask_ & LSKeepFilesOpen) && (lt == Normal || lt == SMTP || lt == POP3 || lt == IMAP);
@@ -417,8 +411,6 @@ namespace HM
 
       if (!keepFileOpen)
          file->Close();
-
-      return true;
    }
 
 

@@ -41,7 +41,7 @@ namespace HM
    if (Logger::Instance()->GetLogMask() & Logger::LSIMAP)      \
       Logger::Instance()->LogIMAPConversation(iSession,sIP, sMsg);      \
 
-   class Logger
+   class Logger : public Singleton<Logger>
    {
    public:
       Logger();
@@ -100,11 +100,7 @@ namespace HM
       bool GetLogApplication() const; 
       bool GetLogTCPIP() const;
       bool GetLoggingEnabled() const;
-	  bool GetLiveLogEnabled() const;
-
-      static void CreateInstance();
-      static void DeleteInstance();
-      static Logger* Instance();
+ 	   bool GetLiveLogEnabled() const;
 
       void EnableLiveLogging(bool bEnable);   
       String GetLiveLog();
@@ -122,10 +118,8 @@ namespace HM
       File* GetCurrentLogFile_(LogType lt);
 
       void LogLive_(String &sMessage);
-      bool WriteData_(const String &sData, LogType = Normal);
+      void WriteData_(const String &sData, LogType = Normal);
    
-      static Logger *pInstanceApp;   
-     
       String log_dir_;
       String GetCurrentTime();
 

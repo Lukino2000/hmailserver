@@ -3,11 +3,9 @@
 
 #pragma once
 
-#include "../Cache/Cacheable.h"
-
 namespace HM
 {
-   class Alias : public Cacheable, public BusinessObject<Alias>
+   class Alias : public BusinessObject<Alias>
    {
    public:
 	   Alias();
@@ -26,6 +24,8 @@ namespace HM
       bool XMLStore(XNode *pParentNode, int iOptions);     
       bool XMLLoad(XNode *pNode, int iOptions);
       bool XMLLoadSubItems(XNode *pNode, int iOptions) {return true; }
+
+      size_t GetEstimatedCachingSize();
 
    protected:
 

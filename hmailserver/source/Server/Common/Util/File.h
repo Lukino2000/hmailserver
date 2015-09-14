@@ -24,7 +24,7 @@ namespace HM
 
       enum Constants
       {
-         FileChunkSize = 15000
+         FileChunkSize = 1048576 // 1MB
       };
 
       bool IsOpen() const;
@@ -34,11 +34,13 @@ namespace HM
       
       bool Write(const String &sWrite);
       bool Write(const AnsiString &sWrite);
-      bool Write(const unsigned char *pBuf, int iBufLen, DWORD &dwNoOfBytesWritten);
-      bool Write(std::shared_ptr<ByteBuffer> pBuffer, DWORD &dwNoOfBytesWritten);
+      bool Write(const unsigned char *pBuf, size_t iBufLen);
+      bool Write(const unsigned char *pBuf, size_t iBufLen, size_t &noOfBytesWritten);
+      bool Write(std::shared_ptr<ByteBuffer> pBuffer, size_t &noOfBytesWritten);
       bool Write(File &sourceFile);
       bool WriteBOF();
 
+      void Write_(void *buffer, int item_size, int item_count);
       int GetSize();
 
       bool SetPosition(int position);

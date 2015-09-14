@@ -44,7 +44,7 @@ namespace HM
 
    TCPServer::~TCPServer(void)
    {
-      LOG_DEBUG("TCPServer::~TCPServer");
+      
    }
 
    bool
@@ -278,17 +278,4 @@ namespace HM
 
       return true;
    }
- 
-   
-
-   bool 
-   TCPServer::HasIPV6()
-   {
-      IPAddress address;
-      return address.TryParse("::F", false);
-   }
-
-
-
-
 }

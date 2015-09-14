@@ -635,7 +635,11 @@ namespace HM
    void
    SMTPClientConnection::StartSendFile_(const String &sFilename)
    {
-      if (!current_file_.Open(sFilename, File::OTReadOnly))
+      try
+      {
+         current_file_.Open(sFilename, File::OTReadOnly);
+      }
+      catch (...)
       {
          String sErrorMsg;
          sErrorMsg.Format(_T("Could not send file %s via socket since it does not exist."), sFilename.c_str());
@@ -649,11 +653,11 @@ namespace HM
 
       std::shared_ptr<ByteBuffer> pBuf = current_file_.ReadChunk(GetBufferSize());
 
-      if (!pBuf)
+      if (pBuf->GetSize() == 0)
          return;
 
       BYTE *pSendBuffer = (BYTE*) pBuf->GetBuffer();
-      int iSendBufferSize = pBuf->GetSize();
+      size_t iSendBufferSize = pBuf->GetSize();
 
       // Append the transmission buffer
       transmission_buffer_.Append(pSendBuffer, iSendBufferSize);
@@ -668,7 +672,7 @@ namespace HM
       int bufferSize = GetBufferSize();
       std::shared_ptr<ByteBuffer> pBuffer = current_file_.ReadChunk(bufferSize);
 
-      while (pBuffer)
+      while (pBuffer->GetSize() > 0)
       {
          transmission_buffer_.Append(pBuffer->GetBuffer(), pBuffer->GetSize());
 

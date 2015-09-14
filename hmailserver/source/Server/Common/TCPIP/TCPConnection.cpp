@@ -4,6 +4,9 @@
 #include "StdAfx.h"
 #include "TCPConnection.h"
 
+#include <limits>
+#include <cstddef>
+
 #include "DisconnectedException.h"
 
 #include "../Util/ByteBuffer.h"
@@ -44,7 +47,8 @@ namespace HM
       expected_remote_hostname_(expected_remote_hostname),
       is_client_(false),
       timeout_(0),
-      connection_state_(StatePendingConnect)
+      connection_state_(StatePendingConnect),
+      handshake_in_progress_(false)
    {
       session_id_ = Application::Instance()->GetUniqueID();
 
@@ -54,10 +58,17 @@ namespace HM
 
    TCPConnection::~TCPConnection(void)
    {
-      LOG_DEBUG("Ending session " + StringParser::IntToString(session_id_));
+      try
+      {
+         LOG_DEBUG("Ending session " + StringParser::IntToString(session_id_));
 
-      if (disconnected_)
-         disconnected_->Set();
+         if (disconnected_)
+            disconnected_->Set();
+      }
+      catch (...)
+      {
+
+      }
    }
 
    bool
@@ -89,6 +100,7 @@ namespace HM
          if (error_code)
          {
             String errorMessage = Formatter::Format("Failed to open local socket on IP address {0}", localAddress.ToString());
+            OnCouldNotConnect(errorMessage);
             ReportError(ErrorManager::Medium, 5520, "TCPConnection::Connect", errorMessage, error_code);
             return false;
          }
@@ -100,6 +112,7 @@ namespace HM
          {
             String errorMessage = Formatter::Format("Failed to bind to IP address {0}.", localAddress.ToString());
             ReportError(ErrorManager::Medium, 4330, "TCPConnection::Connect", errorMessage, error_code);
+            OnCouldNotConnect(errorMessage);
 
             boost::system::error_code ignored_error_code;
             socket_.close(ignored_error_code);
@@ -294,6 +307,10 @@ namespace HM
    void 
    TCPConnection::AsyncHandshake()
    {
+      handshake_in_progress_ = true;
+
+      UpdateAutoLogoutTimer();
+
       // To do peer verification, it must both be enabled globally and supported by the deriving class.
       bool enable_peer_verification = Configuration::Instance()->GetVerifyRemoteSslCertificate() && IsClient();
       
@@ -355,6 +372,8 @@ namespace HM
    void 
    TCPConnection::AsyncHandshakeCompleted(const boost::system::error_code& error)
    {
+      handshake_in_progress_ = false;
+
       if (!error)
       {
          is_ssl_ = true;
@@ -365,7 +384,8 @@ namespace HM
          String sMessage;
          sMessage.Format(_T("TCPConnection - TLS/SSL handshake completed. Session Id: %d, Remote IP: %s, Version: %s, Cipher: %s, Bits: %d"), session_id_, SafeGetIPAddress().c_str(), String(cipher_info.GetVersion()).c_str(), String(cipher_info.GetName()).c_str(), cipher_info.GetBits());
          LOG_TCPIP(sMessage);
-
+         
+         receive_buffer_.consume(receive_buffer_.size());
 
          OnHandshakeCompleted();
       }
@@ -776,6 +796,7 @@ namespace HM
       message.Format(_T("The client has timed out. Session: %d"), conn->GetSessionID());
       LOG_DEBUG(message);
 
+
       conn->Timeout();
    }
 
@@ -789,19 +810,28 @@ namespace HM
          return;
       }
 
-      // If we will attempt to send more data to the client, such as a timeout message, that message
-      // will have 5 seconds before we give up.
-      SetTimeout(5);
+      if (handshake_in_progress_)
+      {
+         // There's currently a SSL/TLS handshake in progress. We can't send more data to the client
+         // at this point, so we'll just disconnect.
+         Disconnect();
+      }
+      else
+      {
+         // If we will attempt to send more data to the client, such as a timeout message, that message
+         // will have 5 seconds before we give up.
+         SetTimeout(5);
 
-      // Let deriving clients send a disconnect message.
-      OnConnectionTimeout();
+         // Let deriving clients send a disconnect message.
+         OnConnectionTimeout();
 
-      // Queue up a disconnection.
-      EnqueueDisconnect();
+         // Queue up a disconnection.
+         EnqueueDisconnect();
 
-      // Make sure the autologout timer is triggered. This is done in OnConnectionTimeout if we send
-      // a timeout message, but if we don't we need to make sure its triggerd.
-      UpdateAutoLogoutTimer();
+         // Make sure the autologout timer is triggered. This is done in OnConnectionTimeout if we send
+         // a timeout message, but if we don't we need to make sure its triggerd.
+         UpdateAutoLogoutTimer();
+      }
    }
 
    void 

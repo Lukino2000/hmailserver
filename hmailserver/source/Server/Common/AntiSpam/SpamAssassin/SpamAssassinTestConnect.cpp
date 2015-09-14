@@ -10,6 +10,7 @@
 #include "../../TCPIP/TCPConnection.h"
 #include "../../TCPIP/SslContextInitializer.h"
 #include "../../TCPIP/DNSResolver.h"
+#include "../../Util/FileUtilities.h"
 
 #ifdef _DEBUG
 #define DEBUG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -40,7 +41,7 @@ namespace HM
       DNSResolver resolver;
 
       std::vector<String> ip_addresses;
-      resolver.GetARecords(hostName, ip_addresses);
+      resolver.GetIpAddresses(hostName, ip_addresses);
 
       String ip_address;
       if (ip_addresses.size())

@@ -37,9 +37,15 @@ namespace HM
    std::shared_ptr<const Account>
    AccountLogon::Logon(const IPAddress &ipaddress, const String &username, const String &password, bool &disconnect)
    {
+	   return Logon(ipaddress, _T(""), username, password, disconnect);
+   }
+
+   std::shared_ptr<const Account>
+   AccountLogon::Logon(const IPAddress &ipaddress, const String &masqname, const String &username, const String &password, bool &disconnect)
+   {
       disconnect = false;
 
-      std::shared_ptr<const Account> account = PasswordValidator::ValidatePassword(username, password);
+      std::shared_ptr<const Account> account = PasswordValidator::ValidatePassword(masqname, username, password);
       if (account)
       {
          PersistentAccount::UpdateLastLogonTime(account);
@@ -108,9 +114,10 @@ namespace HM
       span.SetDateTimeSpan(0,0,minutes,0);
       dt = dt + span;
 
+
       std::shared_ptr<SecurityRange> pSecurityRange = std::shared_ptr<SecurityRange>(new SecurityRange);
       pSecurityRange->SetName(GetIPRangeName_(username));
-      pSecurityRange->SetPriority(20);
+      pSecurityRange->SetPriority(100);
       pSecurityRange->SetLowerIP(ipaddress);
       pSecurityRange->SetUpperIP(ipaddress);
       pSecurityRange->SetExpires(true);

@@ -103,7 +103,7 @@ namespace HM
       if (messages_.get() == NULL)
       {
          messages_ = std::shared_ptr<Messages>(new Messages(id_, -1));
-         messages_->Refresh();
+         messages_->Refresh(false);
       }
 
       return messages_;
@@ -399,6 +399,12 @@ namespace HM
       return vacation_message_is_on_;
 
       
+   }
+
+   size_t 
+   Account::GetEstimatedCachingSize()
+   {
+      return 1024;
    }
 
 }

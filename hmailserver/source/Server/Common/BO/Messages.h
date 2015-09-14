@@ -18,22 +18,19 @@ namespace HM
 	   virtual ~Messages();
 
       void Save();
-      void UndeleteAll();
 
       long GetSize() const;
       __int64 GetFirstUnseenUID() const;
       long GetNoOfSeen() const;
-      long GetNoOfRecent() const;
       
       std::vector<std::shared_ptr<Message>> GetCopy();
-      std::vector<int> Expunge();
-      std::vector<int> Expunge(bool messagesMarkedForDeletion, const std::set<int> &uids, const std::function<void()> &func);
-      std::vector<int> DeleteMessages();
 
       std::shared_ptr<Message> GetItemByUID(unsigned int uid);
       std::shared_ptr<Message> GetItemByUID(unsigned int uid, unsigned int &foundIndex);
 
-      void Refresh();
+      void DeleteMessages(std::function<bool(int, std::shared_ptr<Message>)> &filter);
+
+      void Refresh(bool update_recent_flags);
 
       bool DeleteMessageByDBID(__int64 ID);
 
@@ -41,8 +38,7 @@ namespace HM
       
       void Remove(__int64 iDBID);
 
-      void SetFlagRecentOnMessages(bool bRecent);
-      void AddItem(std::shared_ptr<Message> pObject);
+      void RemoveRecentFlags();
 
       __int64 GetAccountID() {return account_id_; }
       __int64 GetFolderID() {return folder_id_; }

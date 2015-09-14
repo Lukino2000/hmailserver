@@ -51,11 +51,8 @@ namespace HM
 
       String GetName() const {return GetFolderName(); }
       
-      std::vector<int> Expunge();
-      std::vector<int> Expunge(const std::set<int> &uids, const std::function<void()> &func);
+      std::shared_ptr<Messages> GetMessages();
 
-      std::shared_ptr<Messages> GetMessages(bool bReloadIfNeeded = true);
-      std::vector<std::shared_ptr<Message>> GetMessagesCopy(bool bReloadIfNeeded = true);
       std::shared_ptr<IMAPFolders> GetSubFolders();
       std::shared_ptr<ACLPermissions> GetPermissions();
 
@@ -63,11 +60,6 @@ namespace HM
       static void UnescapeFolderString(String &sFolderString);
       
       int GetFolderDepth(int &iRecursion);
-
-      void SetFolderNeedsRefresh();
-      // Sets the dirty flag on this folder. Will cause the IMAP
-      // folder to refresh messages in the folder the next time 
-      // folder is accessed.
 
       bool XMLStore(XNode *pParentNode, int iBackupOptions);
       bool XMLLoad(XNode *pFolderNode, int iRestoreOptions);
@@ -91,8 +83,6 @@ namespace HM
       std::shared_ptr<IMAPFolders> sub_folders_;   
  
       DateTime create_time_;
-
-      bool folder_needs_refresh_;
    };
 
 }

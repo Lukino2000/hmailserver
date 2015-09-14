@@ -134,6 +134,7 @@ namespace HM
       void ProtocolPassword_(const String &sRequest);
       void ProtocolDATA_();
 
+      void ReportUnsupportedEsmtpExtension_(const String &parameter);
 
       void AuthenticateUsingPLAIN_(const String &sLine);
       // Authenticates using a PLAIN line.
@@ -158,6 +159,8 @@ namespace HM
       bool GetDoSpamProtection_();
 
       bool GetIsLocalSender_();
+
+      bool GetAuthIsEnabled_();
 
       void HandleUnableToSaveMessageDataFile_(const String &file_name);
 
@@ -197,7 +200,7 @@ namespace HM
       
       DWORD message_start_tc_;
 
-      int max_message_size_kb_;
+      size_t max_message_size_kb_;
       // Maximum message size in KB.
 
       String helo_host_;

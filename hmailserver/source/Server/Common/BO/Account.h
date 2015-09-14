@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include "../Cache/Cacheable.h"
-
 namespace HM
 {
 
@@ -12,7 +10,7 @@ namespace HM
    class IMAPFolders;
    class Messages;
 
-   class Account  : public Cacheable, public BusinessObject<Account>
+   class Account  : public BusinessObject<Account>
    {
    public:
       enum AdminLevel
@@ -117,6 +115,8 @@ namespace HM
 
       String GetPersonLastName() const;
       void SetPersonLastName(const String &sNewVal);
+
+      size_t GetEstimatedCachingSize();
 
    protected:
       __int64 domain_id_;

@@ -14,6 +14,8 @@
 
 namespace HM
 {
+   
+
    File::File() :
       file_(nullptr)
    {
@@ -100,6 +102,7 @@ namespace HM
       return fseek(file_, position, 0) == 0;
    }
 
+
    bool 
    File::Write(const String &sWrite)
    {
@@ -108,7 +111,7 @@ namespace HM
 
       String temp_nonconst = sWrite;
 
-      int result = fwrite(temp_nonconst.GetBuffer(), sizeof(TCHAR), temp_nonconst.GetLength(), file_);
+      size_t result = fwrite(temp_nonconst.GetBuffer(), sizeof(TCHAR), temp_nonconst.GetLength(), file_);
 
       return result == temp_nonconst.GetLength();
    }
@@ -120,13 +123,23 @@ namespace HM
          throw std::logic_error("Attempt to write to file which has not been opened.");
 
       AnsiString temp_nonconst = sWrite;
-      int result = fwrite(temp_nonconst.GetBuffer(), sizeof(char), temp_nonconst.GetLength(), file_);
+      size_t result = fwrite(temp_nonconst.GetBuffer(), sizeof(char), temp_nonconst.GetLength(), file_);
       return result == temp_nonconst.GetLength();
    }
 
-   bool 
-   File::Write(const unsigned char *pBuf, int iBufLen, DWORD &dwNoOfBytesWritten)
+   bool
+   File::Write(const unsigned char *pBuf, size_t iBufLen)
    {
+      size_t noOfBytesWritten;
+
+      return Write(pBuf, iBufLen, noOfBytesWritten);
+   }
+
+   bool 
+   File::Write(const unsigned char *pBuf, size_t iBufLen, size_t& dwNoOfBytesWritten)
+   {
+      dwNoOfBytesWritten = 0;
+
       if (file_ == nullptr)
          throw std::logic_error("Attempt to write to file which has not been opened.");
 
@@ -135,9 +148,9 @@ namespace HM
    }
 
    bool 
-   File::Write(std::shared_ptr<ByteBuffer> pBuffer, DWORD &dwNoOfBytesWritten)
+   File::Write(std::shared_ptr<ByteBuffer> pBuffer, size_t &noOfBytesWritten)
    {
-      return Write((const unsigned char*) pBuffer->GetCharBuffer(), pBuffer->GetSize(), dwNoOfBytesWritten);
+      return Write((const unsigned char*)pBuffer->GetCharBuffer(), pBuffer->GetSize(), noOfBytesWritten);
    }
 
    bool 
@@ -146,10 +159,10 @@ namespace HM
       // Write unicode beginner markers.
       unsigned char charByteOrderMarker[2] = {-1, -2};
 
-      DWORD dwWritten = 0;
-      Write(charByteOrderMarker, 2, dwWritten);
+      size_t bytesWritten;
+      Write(charByteOrderMarker, 2, bytesWritten);
 
-      if (dwWritten != 2)
+      if (bytesWritten != 2)
       {
          // Failed to write BOM.
          return false;
@@ -177,35 +190,9 @@ namespace HM
    std::shared_ptr<ByteBuffer> 
    File::ReadFile()
    {
-      try
-      {
-         std::shared_ptr<ByteBuffer> pFileContents = std::shared_ptr<ByteBuffer>(new ByteBuffer);
+      int iFileSize = GetSize();
 
-         if (file_ == nullptr)
-            throw std::logic_error("Attempt to read from file which has not been opened.");
-
-         int iFileSize = GetSize();
-
-         // Create a buffer to hold the file
-         pFileContents->Allocate(iFileSize);
-
-         int bytes_read = fread((void*) pFileContents->GetBuffer(), 1, iFileSize, file_);
-
-         if (bytes_read != iFileSize)
-         {
-            throw std::logic_error(Formatter::FormatAsAnsi("Unable to read file {0}. Expected bytes: {1}, Actual read bytes: {2}.", name_, iFileSize, bytes_read));
-         }
-
-         return pFileContents;
-      }
-      catch (...)
-      {
-         ErrorManager::Instance()->ReportError(ErrorManager::Medium, 4227, "File::ReadFile", "An unknown error occurred while reading file from disk.");
-         throw;
-      }
-
-      std::shared_ptr<ByteBuffer> pFileContents = std::shared_ptr<ByteBuffer>(new ByteBuffer);
-      return pFileContents;
+      return ReadChunk(iFileSize);
    }
 
    std::shared_ptr<ByteBuffer> 
@@ -232,32 +219,67 @@ namespace HM
    std::shared_ptr<ByteBuffer> 
    File::ReadChunk(int iMaxSize)
    {  
-      if (file_ == nullptr)
-         throw std::logic_error("Attempt to read from file which has not been opened.");
-
       try
       {
-         std::shared_ptr<ByteBuffer> pReadBuffer = std::shared_ptr<ByteBuffer>(new ByteBuffer);
-         pReadBuffer->Allocate(iMaxSize);
+         std::shared_ptr<ByteBuffer> pFileContents = std::shared_ptr<ByteBuffer>(new ByteBuffer);
 
-         // Read
-         int bytes_read = fread((void*)pReadBuffer->GetBuffer(), 1, iMaxSize, file_);
-
-         if (bytes_read > 0)
-         {
-            std::shared_ptr<ByteBuffer> pRetBuffer = std::shared_ptr<ByteBuffer>(new ByteBuffer);
-            pRetBuffer->Add(pReadBuffer->GetBuffer(), bytes_read);
-            return pRetBuffer;
-         }
+         if (file_ == nullptr)
+            throw std::logic_error("Attempt to read from file which has not been opened.");
          
+         // Create a buffer to hold the file
+         pFileContents->Allocate(iMaxSize);
+
+         // fread fails reading large files. If the file is too large, fread will read zero bytes and the
+         // errno will be set to invalid argument. The below code therefore reads the file in chunks.
+         size_t remaining_bytes = iMaxSize;
+         BYTE *buffer_position = (BYTE*)pFileContents->GetBuffer();
+         
+         size_t total_bytes_read = 0;
+
+         while (remaining_bytes > 0)
+         {
+            size_t bytes_to_read = std::min((size_t) FileChunkSize, remaining_bytes);
+            size_t bytes_actually_read = fread((void*)buffer_position, 1, bytes_to_read, file_);
+
+            total_bytes_read += bytes_actually_read;
+                
+            if (bytes_actually_read != bytes_to_read)
+            {
+               if (feof(file_))
+               {
+                  // we've reached end of file.
+                  break;
+               }
+            
+               char error_msg[255];
+               strerror_s(error_msg, 255, errno);
+               throw std::runtime_error(Formatter::FormatAsAnsi("Unable to read file {0}. Expected bytes: {1}, Actual read bytes: {2}. Error: {3}", name_, bytes_to_read, bytes_actually_read, error_msg));
+            }
+
+            buffer_position += bytes_actually_read;
+            remaining_bytes -= bytes_actually_read;
+            
+         }
+
+         pFileContents->DecreaseSize(iMaxSize - total_bytes_read);
+         return pFileContents;
+      }
+      catch (boost::system::system_error& error)
+      {
+         ErrorManager::Instance()->ReportError(ErrorManager::High, 4208, "File::ReadFile()", "An error occured when reading file.", error);
+         throw;
+      }
+      catch (std::exception& error)
+      {
+         ErrorManager::Instance()->ReportError(ErrorManager::High, 4208, "File::ReadFile()", "An error occured when reading file.", error);
+         throw;
       }
       catch (...)
       {
-         throw;   
+         ErrorManager::Instance()->ReportError(ErrorManager::High, 4208, "File::ReadFile()", "An error occured when reading file.");
+         throw;
       }
 
-      std::shared_ptr<ByteBuffer> pBuffer;
-      return pBuffer;
    }
 
    String 
@@ -266,16 +288,22 @@ namespace HM
       return name_;
    }
 
-   bool 
+	bool 
    File::Write(File &sourceFile)
    {
       while (std::shared_ptr<ByteBuffer> sourceData = sourceFile.ReadChunk(FileChunkSize))
       {
-         DWORD dummy;
-         if (!Write(sourceData, dummy))
+         if (sourceData->GetSize() == 0)
+         {
+            // Done reading source file.
+            return true;
+         }
+
+         size_t bytesWritten = 0;
+         if (!Write(sourceData, bytesWritten))
             return false;
 
-         if (dummy != sourceData->GetSize())
+         if (bytesWritten != sourceData->GetSize())
             return false;
       }
 

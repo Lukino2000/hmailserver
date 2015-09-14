@@ -15,7 +15,7 @@
 #include "../Common/SQL/Prerequisites/PrerequisiteList.h"
 
 #include "../Common/Util/PasswordGenerator.h"
-
+#include "../Common/SQL/SQLCommand.h"
 
 STDMETHODIMP 
 InterfaceDatabase::InterfaceSupportsErrorInfo(REFIID riid)
@@ -33,16 +33,25 @@ InterfaceDatabase::InterfaceSupportsErrorInfo(REFIID riid)
    return S_FALSE;   
 }
 
-InterfaceDatabase::InterfaceDatabase()
+InterfaceDatabase::InterfaceDatabase() :
+   config_(nullptr),
+   ini_file_settings_(nullptr)
 {
 
 }
 
 InterfaceDatabase::~InterfaceDatabase()
 {
-   if (conn_)
+   try
    {
-      RollbackTransaction();
+      if (conn_)
+      {
+         RollbackTransaction();
+      }
+   }
+   catch (...)
+   {
+
    }
 }
    
@@ -515,6 +524,19 @@ STDMETHODIMP InterfaceDatabase::CreateInternalDatabase()
       ini_file_settings_->SetIsInternalDatabase(true);
    
       return S_OK;   
+   }
+   catch (_com_error &err)
+   {
+      _bstr_t bstrSource(err.Source());
+      _bstr_t bstrDescription(err.Description());
+
+      LPCSTR lpcSource = bstrSource;
+      HM::String sErrSource = lpcSource;
+
+      LPCSTR lpcDesc = bstrDescription;
+      HM::String sErrDesc = lpcDesc;
+
+      return COMError::GenerateGenericMessage();
    }
    catch (...)
    {

@@ -16,17 +16,25 @@
 namespace HM
 {
    PGConnection::PGConnection(std::shared_ptr<DatabaseSettings> pSettings) :
-      DALConnection(pSettings)
+      DALConnection(pSettings),
+      dbconn_(nullptr)
    {
       is_connected_ = false;
    }
 
    PGConnection::~PGConnection()
    {
-      if (dbconn_)
+      try
       {
-         PQfinish(dbconn_);
-         dbconn_ = 0;
+         if (dbconn_)
+         {
+            PQfinish(dbconn_);
+            dbconn_ = 0;
+         }
+      }
+      catch (...)
+      {
+
       }
         
    }

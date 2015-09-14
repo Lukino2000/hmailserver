@@ -42,8 +42,13 @@ namespace HM
    ExternalDelivery::ExternalDelivery(const String &sSendersIP, std::shared_ptr<Message> message, const RuleResult &globalRuleResult) :
       _sendersIP(sSendersIP),
       original_message_(message),
-      _globalRuleResult(globalRuleResult)
-{
+      _globalRuleResult(globalRuleResult),
+      quick_retries_(0),
+      quick_retries_Minutes(0),
+      queue_randomness_minutes_(0),
+      mxtries_factor_(0)
+   {
+
    }
 
    ExternalDelivery::~ExternalDelivery(void)
@@ -230,7 +235,7 @@ namespace HM
             for(String host : mailServerHosts)
             {
                std::vector<String> ip_addresses;
-               dnsQueryOK = resolver.GetARecords(host, ip_addresses);
+               dnsQueryOK = resolver.GetIpAddresses(host, ip_addresses);
 
                for(String ip_address:  ip_addresses)
                {

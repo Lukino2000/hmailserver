@@ -73,7 +73,7 @@ namespace HM
    }
 
    std::shared_ptr<MimeHeader>
-   Utilities::GetMimeHeader(const BYTE *pByteBuf, int iBufSize)
+   Utilities::GetMimeHeader(const BYTE *pByteBuf, size_t iBufSize)
    {
       // First locate end of header in the buffer.
       const char *pBuffer = (const char*) pByteBuf;
@@ -88,7 +88,7 @@ namespace HM
       }
 
       // Calculate the length of the header.
-      int iHeaderSize = pBufferEndPos - pBuffer + 2; // +2 for the last newline.
+      size_t iHeaderSize = pBufferEndPos - pBuffer + 2; // +2 for the last newline.
 
       // Load the header
       pMimeHeader->Load(pBuffer, iHeaderSize, true);
@@ -404,7 +404,7 @@ namespace HM
       if (!utilities.IsValidIPAddress("127.0.0"))
          throw;
 
-      if (TCPServer::HasIPV6())
+      if (Configuration::Instance()->IsIPv6Available())
       {
          if (!utilities.IsValidIPAddress("2001:0db8:0000:0000:0000:0000:1428:07ab"))
             throw;

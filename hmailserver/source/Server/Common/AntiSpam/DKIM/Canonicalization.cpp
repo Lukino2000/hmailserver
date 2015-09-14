@@ -6,6 +6,7 @@
 #include "Canonicalization.h"
 #include "../../MIME/MimeCode.h"
 #include "../../MIME/Mime.h"
+#include "..\../Util\Parsing\StringParser.h"
 
 #ifdef _DEBUG
 #define DEBUG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -116,14 +117,15 @@ namespace HM
 
          // locate this field, starting from the end.
          String value;
-         for (int i = fields.size()-1; i >=0; i--)
+         for (size_t i = fields.size(); i > 0; i--)
          {
-            MimeField field = fields[i];
+            size_t fieldIndex = i - 1;
+            MimeField field = fields[fieldIndex];
 
             if (headerField.CompareNoCase(field.GetName()) == 0)
             {
                // found
-               fields.erase(fields.begin()+i);
+               fields.erase(fields.begin() + fieldIndex);
 
                value = field.GetValue();
                break;
@@ -252,9 +254,9 @@ namespace HM
       std::vector<AnsiString> headerLines = StringParser::SplitString(header, "\r\n");
 
       AnsiString foldedLines;
-      for (int i = headerLines.size()-1; i >= 0; i--)
+      for (size_t i = headerLines.size(); i > 0; i--)
       {
-         AnsiString line = headerLines[i];
+         AnsiString line = headerLines[i-1];
 
          if (line.StartsWith(" ") || line.StartsWith("\t"))
          {

@@ -120,6 +120,14 @@ namespace HM
       std::shared_ptr<IMAPNotificationClient> GetNotificationClient() {return notification_client_;}
 
       void StartHandshake();
+	 
+	  void SetRecentMessages(const std::set<__int64> &messages);
+      std::set<__int64>& GetRecentMessages();
+
+
+      void SetCommandBuffer(const String &sval);
+
+
    protected:
 
       virtual void OnConnected();
@@ -138,6 +146,8 @@ namespace HM
       std::map<eIMAPCommandType, std::shared_ptr<IMAPCommand> > mapStaticHandlers;
 
    private:
+
+      std::set<__int64> recent_messages_;
 
       bool InternalParseData(const AnsiString &Request);
       void SendBanner_();
@@ -173,7 +183,7 @@ namespace HM
 
       std::shared_ptr<IMAPNotificationClient> notification_client_;
 
-      int log_level_;      
+      int log_level_;
    };
    
 }

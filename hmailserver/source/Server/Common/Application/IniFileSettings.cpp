@@ -34,7 +34,33 @@ namespace HM
       quick_retries_Minutes(0),
       queue_randomness_minutes_(0),
       mxtries_factor_(0),
-      sqldbtype_(HM::DatabaseSettings::TypeUnknown)
+      sqldbtype_(HM::DatabaseSettings::TypeUnknown),
+      sep_svc_logs_(false),
+	  rewrite_envelope_from_when_forwarding_(false),
+      archive_hardlinks_(false),
+      pop3dmin_timeout_(false),
+      pop3dmax_timeout_(false),
+      pop3cmin_timeout_(false),
+      pop3cmax_timeout_(false),
+      smtpdmin_timeout_(false),
+      smtpdmax_timeout_(false),
+      smtpcmin_timeout_(false),
+      smtpcmax_timeout_(false),
+      samin_timeout_(false),
+      samax_timeout_(false),
+      clam_min_timeout_(false),
+      clam_max_timeout_(false),
+      samove_vs_copy_(false),
+      indexer_full_minutes_(0),
+      indexer_full_limit_(0),
+      indexer_quick_limit_(0),
+      load_header_read_size_(0),
+      load_body_read_size_(0),
+      blocked_iphold_seconds_(0),
+      smtpdmax_size_drop_(0),
+      backup_messages_dbonly_(false),
+      add_xauth_user_ip_(false)
+      
    {
 
    }
@@ -165,6 +191,9 @@ namespace HM
       smtpdmax_size_drop_ =  ReadIniSettingInteger_("Settings", "SMTPDMaxSizeDrop",0);
       backup_messages_dbonly_ =  ReadIniSettingInteger_("Settings", "BackupMessagesDBOnly",0) == 1;
       add_xauth_user_ip_ =  ReadIniSettingInteger_("Settings", "AddXAuthUserIP",1) == 1;
+
+      rewrite_envelope_from_when_forwarding_ = ReadIniSettingInteger_("Settings", "RewriteEnvelopeFromWhenForwarding", 0) == 1;
+      m_sDisableAUTHList = ReadIniSettingString_("Settings", "DisableAUTHList", "");
    }
 
    bool 
@@ -175,6 +204,7 @@ namespace HM
 
       return true;
    }
+
 
    void
    IniFileSettings::WriteIniSetting_(const String &sSection, const String &sKey, const String &sValue)
@@ -501,6 +531,25 @@ namespace HM
    {
       return FileUtilities::Combine(app_directory_, "Bin");
    }
+
+   std::set<int> 
+   IniFileSettings::GetAuthDisabledOnPorts()
+   {
+      if (m_sDisableAUTHList.IsEmpty())
+      {
+         std::set<int> empty;
+         return empty;
+      }
+
+      std::vector<String> authDisabledOnPortsStr = StringParser::SplitString(m_sDisableAUTHList, ",");
+
+      std::set<int> authDisabledOnPorts;
+
+      for (AnsiString port : authDisabledOnPortsStr)
+      {
+         authDisabledOnPorts.insert(atoi(port));
+      }
+
+      return authDisabledOnPorts;
+   }
 }
-
-

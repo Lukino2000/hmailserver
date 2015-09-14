@@ -7,6 +7,7 @@
 
 #include "..\Common\Cache\Cache.h"
 #include "..\Common\Cache\CacheConfiguration.h"
+#include "..\Common\Cache\CacheContainer.h"
 
 #include "..\Common\BO\Domain.h"   
 #include "..\Common\BO\Account.h"
@@ -23,6 +24,13 @@
 #include "..\Common\BO\SURBLServers.h"
 #include "..\Common\BO\BlockedAttachments.h"
 #include "..\Common\BO\GreyListingWhiteAddresses.h"
+
+InterfaceCache::InterfaceCache() :
+   config_(nullptr),
+   cache_config_(nullptr)
+{
+
+}
 
 bool 
 InterfaceCache::LoadSettings()
@@ -116,8 +124,62 @@ InterfaceCache::get_DomainHitRate(long *pVal)
       if (!GetIsServerAdmin())
          return false;
    
-      *pVal = HM::Cache<HM::Domain, HM::PersistentDomain>::Instance()->GetHitRate();
+      *pVal = HM::Cache<HM::Domain>::Instance()->GetHitRate();
    
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+
+STDMETHODIMP
+InterfaceCache::get_DomainCacheSizeKb(long *pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      *pVal = (int) HM::CacheContainer::Instance()->GetDomainCacheSize() / 1024;
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+
+STDMETHODIMP
+InterfaceCache::put_DomainCacheMaxSizeKb(long pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      HM::CacheContainer::Instance()->SetDomainCacheMaxSize(pVal * 1024);
+
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP
+InterfaceCache::get_DomainCacheMaxSizeKb(long *pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      *pVal = (int)HM::CacheContainer::Instance()->GetDomainCacheMaxSize() / 1024;
       return S_OK;
    }
    catch (...)
@@ -171,7 +233,7 @@ InterfaceCache::get_AccountHitRate(long *pVal)
       if (!GetIsServerAdmin())
          return false;
    
-      *pVal = HM::Cache<HM::Account, HM::PersistentAccount>::Instance()->GetHitRate();
+      *pVal = HM::Cache<HM::Account>::Instance()->GetHitRate();
       return S_OK;
    }
    catch (...)
@@ -179,6 +241,60 @@ InterfaceCache::get_AccountHitRate(long *pVal)
       return COMError::GenerateGenericMessage();
    }
 }
+
+STDMETHODIMP
+InterfaceCache::get_AccountCacheSizeKb(long *pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      *pVal = (int)HM::CacheContainer::Instance()->GetAccountCacheSize() / 1024;
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+
+STDMETHODIMP
+InterfaceCache::put_AccountCacheMaxSizeKb(long pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      HM::CacheContainer::Instance()->SetAccountCacheMaxSize(pVal * 1024);
+
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP
+InterfaceCache::get_AccountCacheMaxSizeKb(long *pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      *pVal = (int)HM::CacheContainer::Instance()->GetAccountCacheMaxSize() / 1024;
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
 
 STDMETHODIMP 
 InterfaceCache::get_AliasCacheTTL(long *pVal)
@@ -225,7 +341,60 @@ InterfaceCache::get_AliasHitRate(long *pVal)
       if (!GetIsServerAdmin())
          return false;
    
-      *pVal = HM::Cache<HM::Alias, HM::PersistentAlias>::Instance()->GetHitRate();
+      *pVal = HM::Cache<HM::Alias>::Instance()->GetHitRate();
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+
+STDMETHODIMP
+InterfaceCache::get_AliasCacheSizeKb(long *pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      *pVal = (int)HM::CacheContainer::Instance()->GetAliasCacheSize() / 1024;
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP
+InterfaceCache::put_AliasCacheMaxSizeKb(long pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      HM::CacheContainer::Instance()->SetAliasCacheMaxSize(pVal * 1024);
+
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP
+InterfaceCache::get_AliasCacheMaxSizeKb(long *pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      *pVal = (int)HM::CacheContainer::Instance()->GetAliasCacheMaxSize() / 1024;
       return S_OK;
    }
    catch (...)
@@ -279,7 +448,59 @@ InterfaceCache::get_DistributionListHitRate(long *pVal)
       if (!GetIsServerAdmin())
          return false;
    
-      *pVal = HM::Cache<HM::DistributionList, HM::PersistentDistributionList>::Instance()->GetHitRate();
+      *pVal = HM::Cache<HM::DistributionList>::Instance()->GetHitRate();
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP
+InterfaceCache::get_DistributionListCacheSizeKb(long *pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      *pVal = (int)HM::CacheContainer::Instance()->GetDistributionListCacheSize() / 1024;
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP
+InterfaceCache::put_DistributionListCacheMaxSizeKb(long pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      HM::CacheContainer::Instance()->SetDistributionListCacheMaxSize(pVal * 1024);
+
+      return S_OK;
+   }
+   catch (...)
+   {
+      return COMError::GenerateGenericMessage();
+   }
+}
+
+STDMETHODIMP
+InterfaceCache::get_DistributionListCacheMaxSizeKb(long *pVal)
+{
+   try
+   {
+      if (!cache_config_)
+         return GetAccessDenied();
+
+      *pVal = (int)HM::CacheContainer::Instance()->GetDistributionListCacheMaxSize() / 1024;
       return S_OK;
    }
    catch (...)
@@ -299,10 +520,10 @@ InterfaceCache::Clear()
       if (!GetIsServerAdmin())
          return false;
    
-      HM::Cache<HM::Account, HM::PersistentAccount>::Instance()->Clear();
-      HM::Cache<HM::Domain, HM::PersistentDomain>::Instance()->Clear();
-      HM::Cache<HM::Alias, HM::PersistentAlias>::Instance()->Clear();
-      HM::Cache<HM::DistributionList, HM::PersistentDistributionList>::Instance()->Clear();
+      HM::Cache<HM::Account>::Instance()->Clear();
+      HM::Cache<HM::Domain>::Instance()->Clear();
+      HM::Cache<HM::Alias>::Instance()->Clear();
+      HM::Cache<HM::DistributionList>::Instance()->Clear();
    
       return S_OK;
    }

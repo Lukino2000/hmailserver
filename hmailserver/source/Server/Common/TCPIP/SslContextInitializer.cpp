@@ -28,6 +28,7 @@ namespace HM
       }
 
       SetContextOptions_(context);
+      EnableEllipticCurveCrypto_(context);
 
       if (!SetCipherList_(context))
          return false;
@@ -177,7 +178,7 @@ namespace HM
       bool tlsv11 = Configuration::Instance()->GetSslVersionEnabled(TlsVersion11);
       bool tlsv12 = Configuration::Instance()->GetSslVersionEnabled(TlsVersion12);
 
-      int options = SSL_OP_ALL | SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2;
+      int options = SSL_OP_ALL | SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_ECDH_USE;
 
       if (!sslv30)
          options = options | SSL_OP_NO_SSLv3;
@@ -190,6 +191,27 @@ namespace HM
 
       SSL_CTX* ssl = context.native_handle();
       SSL_CTX_set_options(ssl, options);
+   }
+
+   void
+   SslContextInitializer::EnableEllipticCurveCrypto_(boost::asio::ssl::context& context)
+   {
+      SSL_CTX* ssl = context.native_handle();
+
+      EC_KEY *ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+      if (!ecdh)
+      {
+         ErrorManager::Instance()->ReportError(ErrorManager::Medium, 5511, "SslContextInitializer::SetCipherList_", "Failed to enable TLS EC");
+         return;
+      }
+
+      int set_tmp_ecdhResult = SSL_CTX_set_tmp_ecdh(ssl, ecdh);
+      if (set_tmp_ecdhResult != 1)
+      {
+         ErrorManager::Instance()->ReportError(ErrorManager::Medium, 5511, "SslContextInitializer::SetCipherList_", Formatter::Format("Failed to enable TLS EC. SSL_CTX_set_tmp_ecdh returend {0}", set_tmp_ecdhResult));
+      }
+      
+      EC_KEY_free(ecdh);
    }
 
 }

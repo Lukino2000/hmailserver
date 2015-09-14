@@ -20,8 +20,7 @@
 #include "../COmmon/Persistence/PersistentDomain.h"
 #include "../COmmon/Persistence/PersistentAccount.h"
 
-#include "../COmmon/Cache/Cache.h"
-
+#include "../COmmon/Cache/CacheContainer.h"
 
 
 #ifdef _DEBUG
@@ -37,15 +36,24 @@ namespace HM
       queue_name_("External fetch queue")
    {
       int iMaxNumberOfSimultaneousTasks = IniFileSettings::Instance()->GetMaxNumberOfExternalFetchThreads();
-      
+
       queue_id_ = WorkQueueManager::Instance()->CreateWorkQueue(iMaxNumberOfSimultaneousTasks, queue_name_);
+
    }
 
    ExternalFetchManager::~ExternalFetchManager(void)
    {
-      LOG_DEBUG("ExternalFetchManager::~ExternalFetchManager")
-      WorkQueueManager::Instance()->RemoveQueue(queue_name_);
-      LOG_DEBUG("ExternalFetchManager::~ExternalFetchManager - Removed queue")
+      try
+      {
+         LOG_DEBUG("ExternalFetchManager::DoWork() - Exiting")
+         WorkQueueManager::Instance()->RemoveQueue(queue_name_);
+         LOG_DEBUG("ExternalFetchManager::DoWork() - Removed queue")
+      }
+      catch (...)
+      {
+
+      }
+
    }
 
    void
@@ -58,11 +66,12 @@ namespace HM
    {
       SetIsStarted();
 
-      Logger::Instance()->LogDebug("ExternalFetchManager::Start()");
+
+      Logger::Instance()->LogDebug("ExternalFetchManager::DoWork()");
 
       PersistentFetchAccount::UnlockAll();
 
-      fetch_accounts_ = std::shared_ptr<FetchAccounts> (new FetchAccounts(0));
+      fetch_accounts_ = std::shared_ptr<FetchAccounts>(new FetchAccounts(0));
 
 
       while (1)
@@ -99,8 +108,6 @@ namespace HM
          // Sit here and wait a minute 
          check_now_.WaitFor(boost::chrono::minutes(1));
       }
-
-
    }
 
    bool 
@@ -112,7 +119,7 @@ namespace HM
    {
       __int64 iAccountID = pFA->GetAccountID();
 
-      std::shared_ptr<const Account> pAccount = Cache<Account, PersistentAccount>::Instance()->GetObject(iAccountID);
+      std::shared_ptr<const Account> pAccount = CacheContainer::Instance()->GetAccount(iAccountID);
 
       if (!pAccount || !pAccount->GetActive())
       {
@@ -123,7 +130,7 @@ namespace HM
 
       __int64 iDomainID = pAccount->GetDomainID();
 
-      std::shared_ptr<const Domain> pDomain = Cache<Domain, PersistentDomain>::Instance()->GetObject(iDomainID);
+      std::shared_ptr<const Domain> pDomain = CacheContainer::Instance()->GetDomain(iDomainID);
 
       if (!pDomain || !pDomain->GetIsActive())
       {

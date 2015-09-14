@@ -669,6 +669,18 @@ interface IInterfaceSettings : IDispatch{
 
    [propget, id(99), helpstring("Crash simulation mode")] HRESULT CrashSimulationMode([out, retval] long *pVal);
    [propput, id(99), helpstring("Crash simulation mode")] HRESULT CrashSimulationMode([in] long newVal);
+
+   [propget, id(100), helpstring("IMAP Master user")] HRESULT IMAPMasterUser([out, retval] BSTR *pVal);
+   [propput, id(100), helpstring("IMAP Master user")] HRESULT IMAPMasterUser([in] BSTR newVal);
+
+   [propget, id(101), helpstring("IMAP Master user")] HRESULT IMAPAuthAllowPlainText([out, retval] VARIANT_BOOL *pVal);
+   [propput, id(101), helpstring("IMAP Master user")] HRESULT IMAPAuthAllowPlainText([in] VARIANT_BOOL newVal);
+
+   [propget, id(102), helpstring("IMAP Enable SASL Plain")] HRESULT IMAPSASLPlainEnabled([out, retval] VARIANT_BOOL *pVal);
+   [propput, id(102), helpstring("IMAP Enable SASL Plain")] HRESULT IMAPSASLPlainEnabled([in] VARIANT_BOOL newVal);
+
+   [propget, id(103), helpstring("IMAP Enable SASL Plain Initial Response")] HRESULT IMAPSASLInitialResponseEnabled([out, retval] VARIANT_BOOL *pVal);
+   [propput, id(103), helpstring("IMAP Enable SASL Plain Initial Response")] HRESULT IMAPSASLInitialResponseEnabled([in] VARIANT_BOOL newVal);
 };
 
 
@@ -1456,6 +1468,7 @@ interface IInterfaceApplication : IDispatch{
    [id(8), helpstring("Submits pending email messages. May be triggered if an email has been manually inserted into the database.")] HRESULT SubmitEMail();
    [propget, id(9), helpstring("Returns the Status object.")] HRESULT Status([out, retval] IInterfaceStatus** pVal);
    [propget, id(10), helpstring("Gets the current hMailServer version")] HRESULT Version([out, retval] BSTR *pVal);
+   
    [id(11), helpstring("Opens a connection to the hMailServer database.")] HRESULT Connect();
    [propget, id(12), helpstring("The initialization file currently in use.")] HRESULT InitializationFile([out, retval] BSTR *pVal);
    [id(13), helpstring("Reloads all the server settinsg")] HRESULT Reinitialize();
@@ -1465,6 +1478,8 @@ interface IInterfaceApplication : IDispatch{
    [id(17), helpstring("Authenticate the client.")] HRESULT Authenticate([in] BSTR Username, [in] BSTR Password, [out, retval] IInterfaceAccount** pAccount);
    [propget, id(18), helpstring("Quick links to access objects")] HRESULT Links([out, retval] IInterfaceLinks **pVal);
    [propget, id(19), helpstring("Gets a diagnostics object.")] HRESULT Diagnostics([out, retval] IInterfaceDiagnostics **pVal);
+
+   [propget, id(20), helpstring("Gets the current hMailServer architecture (x86/x64)")] HRESULT VersionArchitecture([out, retval] BSTR *pVal);
 };
 
 [
@@ -1897,8 +1912,8 @@ interface IInterfaceRecipient : IDispatch
 	pointer_default(unique)
 ]
 interface IInterfaceCache : IDispatch{
-	[propget, id(1), helpstring("Cache is enabled.")] HRESULT Enabled([out, retval] VARIANT_BOOL *pVal);
-	[propput, id(1), helpstring("Cache is enabled")] HRESULT Enabled([in] VARIANT_BOOL newVal);
+   [propget, id(1), helpstring("Cache is enabled.")] HRESULT Enabled([out, retval] VARIANT_BOOL *pVal);
+   [propput, id(1), helpstring("Cache is enabled")] HRESULT Enabled([in] VARIANT_BOOL newVal);
 
    [propget, id(2), helpstring("Domain cache time (seconds).")] HRESULT DomainCacheTTL([out, retval] long *pVal);
    [propput, id(2), helpstring("Domain cache time (seconds)")] HRESULT DomainCacheTTL([in] long newVal);
@@ -1917,6 +1932,26 @@ interface IInterfaceCache : IDispatch{
    [propget, id(11), helpstring("Distribution list cache time (seconds).")] HRESULT DistributionListCacheTTL([out, retval] long *pVal);
    [propput, id(11), helpstring("Distribution list cache time (seconds)")] HRESULT DistributionListCacheTTL([in] long newVal);
    [propget, id(12), helpstring("Distribution list hit rate.")] HRESULT DistributionListHitRate([out, retval] long *pVal);
+
+   [propget, id(13), helpstring("Maximum size of cache (in kilobytes)")] HRESULT DomainCacheMaxSizeKb([out, retval] long *pVal);
+   [propput, id(13), helpstring("Maximum size of cache (in kilobytes)")] HRESULT DomainCacheMaxSizeKb([in] long pVal);
+
+   [propget, id(14), helpstring("Current size of cache (in kilobytes)")] HRESULT DomainCacheSizeKb([out, retval] long *pVal);
+
+   [propget, id(15), helpstring("Maximum size of cache (in kilobytes)")] HRESULT AccountCacheMaxSizeKb([out, retval] long *pVal);
+   [propput, id(15), helpstring("Maximum size of cache (in kilobytes)")] HRESULT AccountCacheMaxSizeKb([in] long pVal);
+
+   [propget, id(16), helpstring("Current size of cache (in kilobytes)")] HRESULT AccountCacheSizeKb([out, retval] long *pVal);
+
+   [propget, id(17), helpstring("Maximum size of cache (in kilobytes)")] HRESULT AliasCacheMaxSizeKb([out, retval] long *pVal);
+   [propput, id(17), helpstring("Maximum size of cache (in kilobytes)")] HRESULT AliasCacheMaxSizeKb([in] long pVal);
+
+   [propget, id(18), helpstring("Current size of cache (in kilobytes)")] HRESULT AliasCacheSizeKb([out, retval] long *pVal);
+
+   [propget, id(19), helpstring("Maximum size of cache (in kilobytes)")] HRESULT DistributionListCacheMaxSizeKb([out, retval] long *pVal);
+   [propput, id(19), helpstring("Maximum size of cache (in kilobytes)")] HRESULT DistributionListCacheMaxSizeKb([in] long pVal);
+
+   [propget, id(20), helpstring("Current size of cache (in kilobytes)")] HRESULT DistributionListCacheSizeKb([out, retval] long *pVal);
 
 };
 

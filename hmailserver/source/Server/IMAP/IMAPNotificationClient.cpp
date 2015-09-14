@@ -33,10 +33,17 @@ namespace HM
 
    IMAPNotificationClient::~IMAPNotificationClient()
    {
-      if (folder_list_change_subscription_id_ > 0)
+      try
       {
-         std::shared_ptr<NotificationServer> notificationServer = Application::Instance()->GetNotificationServer();
-         notificationServer->UnsubscribeFolderListChanges(account_id_, folder_list_change_subscription_id_);
+         if (folder_list_change_subscription_id_ > 0)
+         {
+            std::shared_ptr<NotificationServer> notificationServer = Application::Instance()->GetNotificationServer();
+            notificationServer->UnsubscribeFolderListChanges(account_id_, folder_list_change_subscription_id_);
+         }
+      }
+      catch (...)
+      {
+
       }
    }
 
@@ -147,9 +154,9 @@ namespace HM
          case ChangeNotification::NotificationMessageAdded:
             {
                std::shared_ptr<Messages> pMessages = connection->GetCurrentFolder()->GetMessages();
-               pMessages->Refresh();
+               pMessages->Refresh(false);
                lastExists = pMessages->GetCount();
-               lastRecent = pMessages->GetNoOfRecent();
+               lastRecent = (int)connection->GetRecentMessages().size();
                break;
             }
          case ChangeNotification::NotificationMessageDeleted:
@@ -162,7 +169,7 @@ namespace HM
                   // Send EXISTS
                   std::shared_ptr<Messages> pMessages = connection->GetCurrentFolder()->GetMessages();
                   lastExists = pMessages->GetCount();
-                  lastRecent = pMessages->GetNoOfRecent();
+                  lastRecent = (int)connection->GetRecentMessages().size();
 
                   break;
                }
@@ -223,7 +230,7 @@ namespace HM
          {
                std::shared_ptr<Messages> pMessages = connection->GetCurrentFolder()->GetMessages();
             SendEXISTS_(pMessages->GetCount());
-            SendRECENT_(pMessages->GetNoOfRecent());
+            SendRECENT_((int)connection->GetRecentMessages().size());
             break;
          }
       case ChangeNotification::NotificationMessageDeleted:
@@ -234,7 +241,7 @@ namespace HM
             // Send EXISTS
                std::shared_ptr<Messages> pMessages = connection->GetCurrentFolder()->GetMessages();
             SendEXISTS_(pMessages->GetCount());
-            SendRECENT_(pMessages->GetNoOfRecent());
+            SendRECENT_((int)connection->GetRecentMessages().size());
 
             break;
          }

@@ -24,8 +24,7 @@ namespace VMwareIntegration.Console
       {
          var softwareUnderTest = args[0];
 
-         _logFile = args[1];
-         _logFile = _logFile.Replace("%TIMESTAMP%", DateTime.Now.ToString("yyyy-MM-dd HHmmss"));
+         _logFile = string.Format("{0}-{1}.log", softwareUnderTest, DateTime.Now.ToString("yyyy-MM-dd HHmmss"));
 
          if (!File.Exists(softwareUnderTest))
          {
@@ -94,10 +93,14 @@ namespace VMwareIntegration.Console
             }
 
          });
-         
-         System.Console.WriteLine("All tests completed. Press Enter to exit.");
 
-         System.Console.ReadLine();
+         System.Console.WriteLine("All tests completed succesfully.");
+         if (System.Diagnostics.Debugger.IsAttached)
+         {
+            System.Console.WriteLine("Press Enter to exit.");
+            System.Console.ReadLine();
+         }
+
          return 0;
       }
 

@@ -35,7 +35,6 @@
 
 #include "../../SMTP/SMTPDeliveryManager.h"
 #include "../../IMAP/IMAPConfiguration.h"
-#include "../../IMAP/IMAPFolderContainer.h"
 #include "../../ExternalFetcher/ExternalFetchManager.h"
 
 #include "../Threading/WorkQueueManager.h"
@@ -66,22 +65,8 @@ namespace HM
       asynchronous_tasks_queue_("Asynchronous task queue"),
       unique_id_(0)
    {
-      prod_name_ = _T("hMailServer");
       version_ = Formatter::Format("{0}-B{1}", HMAILSERVER_VERSION, HMAILSERVER_BUILD);
       start_time_ = Time::GetCurrentDateTime();
-   }
-
-   String
-   Application::GetVersion() const
-   //---------------------------------------------------------------------------()
-   // DESCRIPTION:
-   // Returns the version of this application.
-   //---------------------------------------------------------------------------()
-   {
-      String sVersion;
-      sVersion.Format(_T("%s %s"), prod_name_.c_str(), version_.c_str());
-
-      return sVersion;
    }
 
    Application::~Application()
@@ -89,6 +74,21 @@ namespace HM
 
    }
 
+   String
+   Application::GetVersionNumber() const
+   {
+      return version_;
+   }
+
+   String
+   Application::GetVersionArchitecture() const
+   {
+#if _WIN64
+      return "x64";
+#else
+      return "x86";
+#endif 
+   }
 
    bool
    Application::InitInstance(String &sErrorMessage)
@@ -135,10 +135,6 @@ namespace HM
       {
          return false;
       }
-
-      // Load the caches...
-      LOG_DEBUG("Application::InitInstance - Creating caches...");
-      CacheContainer::Instance()->CreateCaches();
 
       LOG_DEBUG("Application::InitInstance - Loading configuration...");
       if (!Configuration::Instance()->Load())
@@ -241,9 +237,6 @@ namespace HM
       LOG_DEBUG("Application::ExitInstance - Closing database connection...");
       CloseDatabase();
 
-      LOG_DEBUG("Application::ExitInstance - Deleting caches...");
-      CacheContainer::Instance()->DeleteCaches();
-
       MimeEnvironment::SetAutoFolding(false);
 
       OutOfMemoryHandler::Terminate();
@@ -313,7 +306,7 @@ namespace HM
       RegisterSessionTypes_();
 
       // Create the main work queue.
-      int iMainServerQueue = WorkQueueManager::Instance()->CreateWorkQueue(4, server_work_queue_);
+      size_t iMainServerQueue = WorkQueueManager::Instance()->CreateWorkQueue(4, server_work_queue_);
 
       notification_server_ = std::shared_ptr<NotificationServer>(new NotificationServer());
       folder_manager_ = std::shared_ptr<FolderManager>(new FolderManager());
@@ -416,10 +409,7 @@ namespace HM
       // Then remove the main server.
       WorkQueueManager::Instance()->RemoveQueue(server_work_queue_);
 
-      // Unload the message list cache.
-      LOG_DEBUG("Application::StopServers() - Clearing caches");
-      IMAPFolderContainer::Instance()->Clear();
-
+      OnServerStopped();
 
       // Deinitialize servers
       LOG_DEBUG("Application::StopServers() - Destructing IOCP");

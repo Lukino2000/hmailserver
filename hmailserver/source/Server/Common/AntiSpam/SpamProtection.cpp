@@ -25,6 +25,7 @@
 #include "../TCPIP/DNSResolver.h"
 #include "../TCPIP/HostNameAndIpAddress.h"
 
+#include "../Util/FileUtilities.h"
 
 #include "../../SMTP/BLCheck.h"
 #include "../../SMTP/GreyListing.h"
@@ -79,7 +80,7 @@ namespace HM
       pTestData->SetConnectingIP(iConnectingIP);
 
       AntiSpamConfiguration &config = Configuration::Instance()->GetAntiSpamConfiguration();
-      int maxScore = max(config.GetSpamDeleteThreshold(), config.GetSpamMarkThreshold());
+      int maxScore = std::max(config.GetSpamDeleteThreshold(), config.GetSpamMarkThreshold());
 
       std::set<std::shared_ptr<SpamTestResult> > setResult = spam_test_runner_->RunSpamTest(pTestData, SpamTest::PreTransmission, maxScore);
 
@@ -104,7 +105,7 @@ namespace HM
       int maxSizeToScanKB = 1024 * 5;
 
       if (config.GetAntiSpamMaxSizeKB() > 0)
-         maxSizeToScanKB = min(config.GetAntiSpamMaxSizeKB(), maxSizeToScanKB);
+         maxSizeToScanKB = std::min(config.GetAntiSpamMaxSizeKB(), maxSizeToScanKB);
 
       int messageSizeKB = FileUtilities::FileSize(fileName) / 1024;
       if (messageSizeKB > maxSizeToScanKB)
@@ -124,7 +125,7 @@ namespace HM
       pTestData->SetConnectingIP(iConnectingIP);
       pTestData->SetMessageData(pMessageData);
 
-      int maxScore = max(config.GetSpamDeleteThreshold(), config.GetSpamMarkThreshold());
+      int maxScore = std::max(config.GetSpamDeleteThreshold(), config.GetSpamMarkThreshold());
 
       std::set<std::shared_ptr<SpamTestResult> > setResult = spam_test_runner_->RunSpamTest(pTestData, SpamTest::PostTransmission, maxScore);
 
@@ -179,7 +180,7 @@ namespace HM
             std::vector<String> found_ip_addresses;
                
             DNSResolver resolver;
-            resolver.GetARecords(senderDomain, found_ip_addresses);
+            resolver.GetIpAddresses(senderDomain, found_ip_addresses);
 
             std::vector<HostNameAndIpAddress> host_name_with_addresses;
             resolver.GetEmailServers(senderDomain, host_name_with_addresses);
@@ -208,7 +209,7 @@ namespace HM
    }
 
    std::shared_ptr<MessageData>
-   SpamProtection::TagMessageAsSpam(std::shared_ptr<Message> pMessage, std::set<std::shared_ptr<SpamTestResult> > setResult)
+   SpamProtection::AddSpamScoreHeaders(std::shared_ptr<Message> pMessage, std::set<std::shared_ptr<SpamTestResult> > setResult, bool classifiedAsSpam)
    {
       std::shared_ptr<MessageData> pMessageData;
 
@@ -229,8 +230,26 @@ namespace HM
       if (!pMessageData->LoadFromMessage(PersistentMessage::GetFileName(pMessage), pMessage))
          return pMessageData;
 
-      if (config.GetAddHeaderSpam())
-         pMessageData->SetFieldValue("X-hMailServer-Spam", "YES");
+      if (classifiedAsSpam)
+      {
+         if (config.GetAddHeaderSpam())
+         {
+            pMessageData->SetFieldValue("X-hMailServer-Spam", "YES");
+         }
+
+         if (config.GetPrependSubject())
+         {
+            // Add subject
+            String sSubject = pMessageData->GetFieldValue("Subject");
+
+            // Check if subject is already prepended. If so, don't do it again.
+            if (sSubject.Find(config.GetPrependSubjectText()) != 0)
+            {
+               sSubject = config.GetPrependSubjectText() + " " + sSubject;
+               pMessageData->SetFieldValue("Subject", sSubject);
+            }
+         }
+      }
 
       if (config.GetAddHeaderReason())
       {
@@ -257,22 +276,7 @@ namespace HM
          }
 
          pMessageData->SetFieldValue("X-hMailServer-Reason-Score", StringParser::IntToString(iTotalScore));
-         
       }
-
-      if (config.GetPrependSubject())
-      {
-         // Add subject
-         String sSubject = pMessageData->GetFieldValue("Subject");
-            
-         // Check if subject is already prepended. If so, don't do it again.
-         if (sSubject.Find(config.GetPrependSubjectText()) != 0)
-         {
-            sSubject = config.GetPrependSubjectText() + " " + sSubject;
-            pMessageData->SetFieldValue("Subject", sSubject);
-         }
-      }
-
 
       return pMessageData;
       

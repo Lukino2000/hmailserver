@@ -28,6 +28,7 @@
 #include "../common/Util/MessageUtilities.h"
 
 #include "../IMAP/IMAPFolderContainer.h"
+#include "../IMAP/MessagesContainer.h"
 
 #include "SMTPConfiguration.h"
 #include "SMTPVacationMessageCreator.h"
@@ -110,7 +111,7 @@ namespace HM
    /// Delivers a single message to a specific account.
    /// Returns true if the delivery was made, false otherwise.
    void
-   LocalDelivery::DeliverToLocalAccount_(std::shared_ptr<const Account> account, int iNoOfRecipients, std::vector<String> &saErrorMessages, const String &sOriginalAddress, bool &messageReused)
+   LocalDelivery::DeliverToLocalAccount_(std::shared_ptr<const Account> account, size_t iNoOfRecipients, std::vector<String> &saErrorMessages, const String &sOriginalAddress, bool &messageReused)
    {
       // First check that we're actually able to deliver a message to this account. If the account
       // has reached it's quota, we should cancel delivery immediately. If we create the account-level
@@ -160,7 +161,7 @@ namespace HM
 
       // Tell the folder container that the users inbox is updated this will 
       // cause a refresh in the imap server whenever a new imap command is sent.
-      IMAPFolderContainer::Instance()->SetFolderNeedRefresh(accountLevelMessage->GetAccountID(), accountLevelMessage->GetFolderID());
+      MessagesContainer::Instance()->SetFolderNeedsRefresh(accountLevelMessage->GetFolderID());
 
       // Notify the mailbox notifier that the mailbox contents have changed.
       std::shared_ptr<ChangeNotification> changeNotification = 

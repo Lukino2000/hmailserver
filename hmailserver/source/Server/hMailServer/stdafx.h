@@ -13,6 +13,8 @@
 #define STRICT
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
 
+#define NOMINMAX
+
 // Following define is to solve this compilation warning:
 //    C:\Dev\hMailLibs\VS2013\boost_1_56_0\boost/asio/detail/impl/socket_ops.ipp(2315) : error C2220 : warning treated as error - no 'object' file generated
 //    C:\Dev\hMailLibs\VS2013\boost_1_56_0\boost/asio/detail/impl/socket_ops.ipp(2315) : warning C4996 : 'gethostbyaddr' : Use getnameinfo() or GetNameInfoW() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
@@ -53,9 +55,15 @@
 #include "Windows.h"
 
 // ADO
-#import "..\..\..\..\libraries\msado28\msado28.tlb" \
-   rename("EOF","adoEOF") \
-   no_namespace
+#if _WIN64
+   #import "..\..\..\..\libraries\msado28\msado28-x64.tlb" \
+      rename("EOF","adoEOF") \
+      no_namespace
+#else
+   #import "..\..\..\..\libraries\msado28\msado28-x32.tlb" \
+      rename("EOF","adoEOF") \
+      no_namespace
+#endif
 
 #include "resource.h"
 #include <atlbase.h>
@@ -78,11 +86,11 @@
 // BOOST INCLUDES
 
 #include <boost/bind.hpp>
-//#include <boost/condition_variable.hpp>
 #include <boost/thread.hpp>
 #include <boost/chrono.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/signals2/signal.hpp>
 
 #ifdef _DEBUG
    #define _CRTDBG_MAP_ALLOC
@@ -112,6 +120,7 @@
    #include "..\Common\Util\Parsing\StringParser.h"
    #include "..\Common\Util\FileUtilities.h"
    #include "..\Common\Util\HeapChecker.h"
+
    #include "..\Common\BO\BusinessObject.h"
    #include "..\COM\COMAuthentication.h"
    #include "..\COM\COMAuthenticator.h"

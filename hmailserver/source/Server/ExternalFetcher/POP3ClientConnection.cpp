@@ -17,13 +17,13 @@
 #include "../SMTP/RecipientParser.h"
 #include "../Common/Util/Parsing/AddressListParser.h"
 #include "../Common/Util/Utilities.h"
+#include "../Common/Util/ServerStatus.h"
 #include "../Common/Mime/Mime.h"
 #include "../Common/BO/FetchAccountUID.h"
 #include "../Common/BO/MessageRecipients.h"
 #include "../common/util/MessageUtilities.h"
 #include "../common/Threading/AsynchronousTask.h"
 #include "../common/Threading/WorkQueue.h"
-
 
 #include "../Common/Util/TransparentTransmissionBuffer.h"
 
@@ -628,13 +628,7 @@ namespace HM
       // Skip passed the end of the line
       pEndOfLine += 2;
 
-      int iLineLength = pEndOfLine - pText;
-
-      if (iLineLength <= 0)
-      {
-         // Wait for more data
-         return false;
-      }
+      size_t iLineLength = pEndOfLine - pText;
 
       // Copy the first line from the binary buffer.
       AnsiString sLine;
@@ -644,7 +638,7 @@ namespace HM
       
       ParseRETRResponse_(sLine);
 
-      int iRemaining = pBuf->GetSize() - iLineLength;
+      size_t iRemaining = pBuf->GetSize() - iLineLength;
       pBuf->Empty(iRemaining);
 
       return true;
@@ -795,6 +789,12 @@ namespace HM
 
       setSpamTestResults.insert(setResult.begin(), setResult.end());
 
+      // Run PostTransmissionTests. These consists of more heavy stuff such as SURBL and SpamAssassin-
+      setResult =
+         SpamProtection::Instance()->RunPostTransmissionTests(senderAddress, ipAddress, ipAddress, current_message_);
+
+      setSpamTestResults.insert(setResult.begin(), setResult.end());
+      
       int iTotalSpamScore = SpamProtection::CalculateTotalSpamScore(setSpamTestResults);
 
       if (iTotalSpamScore >= Configuration::Instance()->GetAntiSpamConfiguration().GetSpamDeleteThreshold())
@@ -802,33 +802,16 @@ namespace HM
          FileUtilities::DeleteFile(fileName);
          return false;
       }
-      else if (iTotalSpamScore >= Configuration::Instance()->GetAntiSpamConfiguration().GetSpamMarkThreshold())
-      {
-         std::shared_ptr<MessageData> messageData = SpamProtection::TagMessageAsSpam(current_message_, setSpamTestResults);
-         if (messageData)
-            messageData->Write(fileName);
-      }
+      
+      bool classifiedAsSpam = iTotalSpamScore >= Configuration::Instance()->GetAntiSpamConfiguration().GetSpamMarkThreshold();
+      
+      std::shared_ptr<MessageData> messageData = SpamProtection::AddSpamScoreHeaders(current_message_, setSpamTestResults, classifiedAsSpam);
 
-      // Run PostTransmissionTests. These consists of more heavy stuff such as SURBL and SpamAssassin-
-      setResult = 
-            SpamProtection::Instance()->RunPostTransmissionTests(senderAddress, ipAddress, ipAddress, current_message_);
+      if (messageData)
+         messageData->Write(fileName);
 
-      setSpamTestResults.insert(setResult.begin(), setResult.end());
-
-      iTotalSpamScore = SpamProtection::CalculateTotalSpamScore(setSpamTestResults);
-
-      if (iTotalSpamScore >= Configuration::Instance()->GetAntiSpamConfiguration().GetSpamDeleteThreshold())
-      {
-         FileUtilities::DeleteFile(fileName);
-         return false;
-      }
-      else if (iTotalSpamScore >= Configuration::Instance()->GetAntiSpamConfiguration().GetSpamMarkThreshold())
-      {
-         std::shared_ptr<MessageData> messageData = SpamProtection::TagMessageAsSpam(current_message_, setSpamTestResults);
-
-         if (messageData)
-            messageData->Write(fileName);
-      }
+      if (classifiedAsSpam)
+         ServerStatus::Instance()->OnSpamMessageDetected();
 
       return true;
    }

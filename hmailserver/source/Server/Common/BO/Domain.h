@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "../Cache/Cacheable.h"
-
 namespace HM
 {
 
@@ -14,7 +12,7 @@ namespace HM
    class Accounts;
    class DomainAliases;
 
-   class Domain : public Cacheable, public BusinessObject<Domain>
+   class Domain : public BusinessObject<Domain>
    {
    public:
 	   Domain();
@@ -148,6 +146,7 @@ namespace HM
       bool XMLLoad(XNode *pDomainNode, int iRestoreOptions);
       bool XMLLoadSubItems(XNode *pDomainNode, int iRestoreOptions);
 
+      size_t GetEstimatedCachingSize();
    protected:
 
       int anti_spam_options_;

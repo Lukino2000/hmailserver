@@ -55,7 +55,8 @@ namespace HM
       is_idling_(false),
       literal_data_to_receive_(0),
       pending_disconnect_(false),
-      current_folder_read_only_(false)
+      current_folder_read_only_(false),
+      log_level_(0)
    {
       imap_folders_.reset();
 
@@ -71,16 +72,23 @@ namespace HM
 
    IMAPConnection::~IMAPConnection()
    {
-      // Delete all command handles before we destroy ourselves.
-      // Some of the command handlers may try to access (this)
-      // on destruction, so it's important that we disconnect these
-      // before terminating ourselves.
-      mapCommandHandlers.clear();
-   
-      if (GetConnectionState() != StatePendingConnect)
-         SessionManager::Instance()->OnSessionEnded(STIMAP);
+      try
+      {
+         // Delete all command handles before we destroy ourselves.
+         // Some of the command handlers may try to access (this)
+         // on destruction, so it's important that we disconnect these
+         // before terminating ourselves.
+         mapCommandHandlers.clear();
 
-      CloseCurrentFolder();
+         if (GetConnectionState() != StatePendingConnect)
+            SessionManager::Instance()->OnSessionEnded(STIMAP);
+
+         CloseCurrentFolder();
+      }
+      catch (...)
+      {
+
+      }
    }
 
    void
@@ -166,7 +174,7 @@ namespace HM
    IMAPConnection::ParseData(const AnsiString &Request)
    //---------------------------------------------------------------------------()
    // DESCRIPTION:
-   // Parses a client POP3 command.
+   // Parses a client IMAP command.
    //---------------------------------------------------------------------------()
    {
       if (InternalParseData(Request))
@@ -616,7 +624,7 @@ namespace HM
       if (!bHandlerFound)
       {
          // Should never happen. If the command is not known to hMailServer, it is classified as
-         // IMAP_UNKNOWN. This command is set up int he static command handlers.
+         // IMAP_UNKNOWN. This command is set up in the static command handlers.
          throw std::logic_error(Formatter::FormatAsAnsi("Handler for {0} was not found.", sCommandName));
       }
 
@@ -803,7 +811,7 @@ namespace HM
       // is in read-only mode - if it has been selected using the EXAMINE command.
       if (!current_folder_read_only_)
       {
-         current_folder_->GetMessages()->SetFlagRecentOnMessages(false);
+         current_folder_->GetMessages()->RemoveRecentFlags();
       }
 
       // Unload the folder.
@@ -826,6 +834,12 @@ namespace HM
       {
          notification_client_->SubscribeMessageChanges(current_folder_->GetAccountID(), pFolder->GetID());
       }
+   }
+
+   void
+   IMAPConnection::SetCommandBuffer(const String &sval)
+   {
+      command_buffer_ = sval;
    }
 
    void 
@@ -918,6 +932,18 @@ namespace HM
    IMAPConnection::StartHandshake()
    {
       EnqueueHandshake();
+   }
+
+   void 
+   IMAPConnection::SetRecentMessages(const std::set<__int64> &messages)
+   {
+      recent_messages_ = messages;
+   }
+
+   std::set<__int64>& 
+   IMAPConnection::GetRecentMessages()
+   {
+      return recent_messages_;
    }
 }
 

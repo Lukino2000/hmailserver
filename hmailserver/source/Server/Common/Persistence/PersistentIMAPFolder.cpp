@@ -11,6 +11,7 @@
 #include "..\BO\IMAPFolder.h"
 
 #include "..\..\IMAP\IMAPFolderContainer.h"
+#include "..\..\IMAP\MessagesContainer.h"
 
 #include "..\Tracking\ChangeNotification.h"
 #include "..\Tracking\NotificationServer.h"
@@ -66,9 +67,16 @@ namespace HM
          return false;
 
       // We must delete all email in this folder.
-      pFolder->GetMessages()->Refresh();
-      pFolder->GetMessages()->DeleteMessages();
-      
+      pFolder->GetMessages()->Refresh(false);
+
+      std::function<bool(int, std::shared_ptr<Message>)> filter = [](int index, std::shared_ptr<Message> message)
+         {
+            return true;
+         };
+
+      auto messages = MessagesContainer::Instance()->GetMessages(pFolder->GetAccountID(), pFolder->GetID());
+      messages->DeleteMessages(filter);
+            
       if (!pFolder->GetPermissions()->DeleteAll())
          return false;
 
